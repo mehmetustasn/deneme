@@ -1,0 +1,431 @@
+:root {
+  --bg: #0f172a;
+  --panel: #162041;
+  --panel-light: #1d2b52;
+  --accent: #00f7b4;
+  --accent-2: #ff7b9c;
+  --text: #f8fbff;
+  --muted: #9fb2d8;
+  --border: rgba(255, 255, 255, 0.08);
+  font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #1f2a48, #0b1021);
+  min-height: 100vh;
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+#app {
+  min-height: 100vh;
+  padding: 2rem clamp(1rem, 4vw, 4rem) 4rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-summary h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+}
+
+.profile-chip {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.profile-chip:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.balances {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 1rem;
+  background: var(--panel);
+  padding: 1rem;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.action-card {
+  background: var(--panel);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.2s ease, border 0.2s ease, background 0.2s ease;
+}
+
+.action-card span {
+  font-size: 2rem;
+}
+
+.action-card h3 {
+  margin-bottom: 0.3rem;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  background: var(--panel-light);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 20, 0.92);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+
+.auth-card {
+  width: min(480px, 92vw);
+  background: var(--panel);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  border: 1px solid var(--border);
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-tab {
+  flex: 1;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.auth-tab.active {
+  background: var(--accent);
+  color: #041c24;
+}
+
+.auth-form {
+  display: none;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-form.active {
+  display: flex;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+}
+
+button {
+  border: none;
+  border-radius: 0.9rem;
+  padding: 0.8rem 1.4rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button.primary {
+  background: linear-gradient(120deg, var(--accent), #00d4ff);
+  color: #02161a;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+.panel {
+  position: fixed;
+  inset: 5vh clamp(1rem, 4vw, 6rem);
+  background: rgba(10, 15, 34, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  backdrop-filter: blur(24px);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.home-button {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.close-panel {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  font-size: 1.3rem;
+}
+
+.bank-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.5rem;
+}
+
+.bank-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bank-tab {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+}
+
+.bank-tab.active {
+  border-color: var(--accent);
+  background: rgba(0, 247, 180, 0.15);
+}
+
+.bank-view {
+  display: none;
+}
+
+.bank-view.active {
+  display: block;
+}
+
+.currency-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.currency-card {
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.currency-card.active {
+  border-color: var(--accent);
+  background: rgba(0, 247, 180, 0.07);
+}
+
+.currency-card small {
+  color: var(--muted);
+}
+
+.price-change.negative {
+  color: #ff6b7a;
+}
+
+.price-change.positive {
+  color: #57ffb5;
+}
+
+.trade-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.trade-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.inventory-card,
+.market-card {
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.listing-form,
+#transfer-form,
+#currency-form,
+#profile-form {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  padding: 1rem;
+}
+
+.market-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.factory-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+button.huge {
+  font-size: 1.2rem;
+  padding: 1rem 2rem;
+}
+
+.receipt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.receipt-item {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 5, 15, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 20;
+  transition: opacity 0.25s ease;
+}
+
+.dialog.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dialog-card {
+  background: var(--surface);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  max-width: 360px;
+  width: 100%;
+  border: 1px solid var(--border);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dialog-card[data-variant="success"] {
+  border-color: var(--accent);
+  box-shadow: 0 40px 120px rgba(76, 175, 80, 0.35);
+}
+
+.dialog-card[data-variant="error"] {
+  border-color: rgba(255, 94, 94, 0.7);
+  box-shadow: 0 40px 120px rgba(255, 94, 94, 0.35);
+}
+
+@media (max-width: 960px) {
+  .bank-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    inset: 0;
+    border-radius: 0;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
