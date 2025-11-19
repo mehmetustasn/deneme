@@ -26,7 +26,6 @@
           <label>Kullanıcı Adı<input name="username" required /></label>
           <label>Şifre<input name="password" type="password" required /></label>
           <label>Telefon Numarası<input name="phone" type="tel" required /></label>
-          <p class="form-hint">TC kimliği oyun tarafından atanır ve profilinde görünür.</p>
           <button type="submit" class="btn-positive">Kaydı Tamamla</button>
         </form>
         <form id="login-form" class="auth-form">
@@ -59,6 +58,10 @@
             <p>Demir</p>
             <strong id="iron-balance">0</strong>
           </div>
+        </div>
+        <div class="clock-pill">
+          <p>İstanbul</p>
+          <strong id="istanbul-clock">00:00:00</strong>
         </div>
       </header>
 
@@ -93,6 +96,11 @@
             <span>🎒</span>
             <h3>Envanter</h3>
             <p>Eşyalarını düzenle.</p>
+          </article>
+          <article class="action-card" data-panel="chat-panel">
+            <span>💬</span>
+            <h3>Sohbet</h3>
+            <p>Online oyuncularla konuş.</p>
           </article>
         </section>
       </main>
@@ -199,7 +207,7 @@
             <select name="item" required></select>
           </label>
           <label>Adet<input name="quantity" type="number" min="1" required /></label>
-          <label>Birim Fiyat (₺)<input name="price" type="number" min="1" required /></label>
+          <label>Toplam Fiyat (₺)<input name="price" type="number" min="1" required /></label>
           <button type="submit" class="btn-positive">Satışa Koy</button>
         </form>
       </div>
@@ -277,6 +285,29 @@
       </div>
       <div class="panel-body">
         <ul id="receipt-list" class="receipt-list"></ul>
+      </div>
+    </section>
+
+    <section id="chat-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Canlı Sohbet</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body chat-panel-body">
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-form">
+          <textarea
+            id="chat-input"
+            name="message"
+            rows="2"
+            placeholder="Mesajını yaz..."
+            required
+          ></textarea>
+          <button type="submit" class="btn-positive">Gönder</button>
+        </form>
       </div>
     </section>
 

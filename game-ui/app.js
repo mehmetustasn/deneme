@@ -18,6 +18,7 @@ const dom = {
   playerLevel: document.getElementById("player-level"),
   cashBalance: document.getElementById("cash-balance"),
   ironBalance: document.getElementById("iron-balance"),
+  clock: document.getElementById("istanbul-clock"),
   profileUsername: document.getElementById("profile-username"),
   profileLevel: document.getElementById("profile-level"),
   profileIdentity: document.getElementById("profile-identity"),
@@ -38,10 +39,14 @@ const dom = {
   receiptButton: document.getElementById("receipt-button"),
   receiptPanel: document.getElementById("receipt-panel"),
   receiptList: document.getElementById("receipt-list"),
+  chatMessages: document.getElementById("chat-messages"),
+  chatForm: document.getElementById("chat-form"),
+  chatInput: document.getElementById("chat-input"),
 };
 
 const GAMEPLAY_STORAGE = "ticarion-gameplay";
 const MARKET_STORAGE = "ticarion-market";
+const CHAT_STORAGE = "ticarion-chat";
 
 const defaultCurrencies = [
   {
@@ -83,6 +88,7 @@ const state = {
   users: loadUsers(),
   gameplay: defaultGameplay(),
   market: loadMarketListings(),
+  chat: loadChatMessages(),
 };
 
 function loadUsers() {
@@ -109,6 +115,18 @@ function saveMarketListings() {
   localStorage.setItem(MARKET_STORAGE, JSON.stringify(state.market));
 }
 
+function loadChatMessages() {
+  try {
+    return JSON.parse(localStorage.getItem(CHAT_STORAGE)) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveChatMessages() {
+  localStorage.setItem(CHAT_STORAGE, JSON.stringify(state.chat));
+}
+
 function defaultGameplay() {
   return {
     balances: {
@@ -131,7 +149,7 @@ function defaultGameplay() {
 
 function loadState(username) {
   try {
-    const storage = JSON.parse(localStorage.getItem(GAMEPLAY_STORAGE)) || {};
+    const storage = loadGameplayStorage();
     return storage[username] || defaultGameplay();
   } catch (error) {
     return defaultGameplay();
@@ -140,13 +158,30 @@ function loadState(username) {
 
 function saveState() {
   if (!state.user) return;
-  const payload = JSON.parse(localStorage.getItem(GAMEPLAY_STORAGE) || "{}");
+  const payload = loadGameplayStorage();
   payload[state.user.username] = state.gameplay;
+  persistGameplayStorage(payload);
+}
+
+function loadGameplayStorage() {
+  try {
+    return JSON.parse(localStorage.getItem(GAMEPLAY_STORAGE)) || {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function persistGameplayStorage(payload) {
   localStorage.setItem(GAMEPLAY_STORAGE, JSON.stringify(payload));
 }
 
 function generateIdentity() {
-  return String(Math.floor(10000000000 + Math.random() * 90000000000)).slice(0, 11);
+  const existing = new Set(state.users.map((user) => user.identity).filter(Boolean));
+  let identity = "";
+  do {
+    identity = String(Math.floor(10000000000 + Math.random() * 90000000000));
+  } while (existing.has(identity));
+  return identity;
 }
 
 function createListingId() {
@@ -158,9 +193,22 @@ function createListingId() {
 function normalizeMarketListings() {
   let mutated = false;
   state.market = (state.market || []).map((listing) => {
-    if (listing.id) return listing;
-    mutated = true;
-    return { ...listing, id: createListingId() };
+    let next = { ...listing };
+    if (!next.id) {
+      next.id = createListingId();
+      mutated = true;
+    }
+    if (typeof next.totalPrice !== "number") {
+      const unit = next.price || next.unitPrice || 0;
+      next.totalPrice = unit * (next.quantity || 1);
+      mutated = true;
+    }
+    if (typeof next.unitPrice !== "number" || Number.isNaN(next.unitPrice)) {
+      const qty = next.quantity || 1;
+      next.unitPrice = (next.totalPrice || 0) / qty;
+      mutated = true;
+    }
+    return next;
   });
   if (mutated) {
     saveMarketListings();
@@ -183,6 +231,9 @@ function togglePanel(panelId, open = true) {
   if (!panel) return;
   if (open) {
     panel.classList.remove("hidden");
+    if (panelId === "chat-panel") {
+      renderChat();
+    }
   } else {
     panel.classList.add("hidden");
   }
@@ -240,14 +291,15 @@ function renderMarket() {
     .filter((listing) => listing.item.toLowerCase().includes(query))
     .map((listing) => {
       const owned = state.user && listing.seller === state.user.username;
-      const total = listing.price * listing.quantity;
+      const unit = listing.unitPrice ?? listing.price;
+      const total = listing.totalPrice ?? unit * listing.quantity;
       return `
         <article class="market-card" data-listing="${listing.id}">
           ${owned ? '<span class="badge">Senin</span>' : ""}
           <h4>${formatItem(listing.item)}</h4>
           <p>Satıcı: ${listing.seller}</p>
           <p>Adet: ${listing.quantity.toLocaleString("tr-TR")}</p>
-          <p>Birim: ${formatCurrency(listing.price)}</p>
+          <p>Birim: ${formatCurrency(unit)}</p>
           <p>Toplam: ${formatCurrency(total)}</p>
           ${
             owned
@@ -317,6 +369,17 @@ function formatItem(key) {
   return mapping[key] || key;
 }
 
+function escapeHtml(value = "") {
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return value.replace(/[&<>"']/g, (char) => map[char] || char);
+}
+
 function selectCurrency(id) {
   const cards = document.querySelectorAll(".currency-card");
   cards.forEach((card) => {
@@ -336,8 +399,25 @@ function selectCurrency(id) {
   }
 }
 
-function tradingWindowOpen() {
+function getIstanbulDate() {
   const now = new Date();
+  return new Date(
+    now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" })
+  );
+}
+
+function updateClock() {
+  if (!dom.clock) return;
+  const now = getIstanbulDate();
+  dom.clock.textContent = now.toLocaleTimeString("tr-TR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function tradingWindowOpen() {
+  const now = getIstanbulDate();
   const hour = now.getHours();
   return hour >= 9 && hour < 21;
 }
@@ -389,7 +469,7 @@ function handleTrade(event) {
 }
 
 function pushReceipt(type, currency, quantity, unitPrice) {
-  const now = new Date();
+  const now = getIstanbulDate();
   state.gameplay.receipts.unshift({
     type,
     currency: currency.name,
@@ -417,15 +497,88 @@ function renderReceipts() {
     .join("");
 }
 
+function renderChat() {
+  if (!dom.chatMessages) return;
+  state.chat = loadChatMessages();
+  if (!state.chat.length) {
+    dom.chatMessages.innerHTML = '<p class="empty-state">Henüz mesaj yok.</p>';
+    return;
+  }
+  const formatter = new Intl.DateTimeFormat("tr-TR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "Europe/Istanbul",
+  });
+  dom.chatMessages.innerHTML = state.chat
+    .slice(-100)
+    .map((message) => {
+      const stamp = message.timestamp
+        ? formatter.format(new Date(message.timestamp))
+        : "";
+      const username = escapeHtml(message.username);
+      const text = escapeHtml(message.message);
+      return `
+        <article class="chat-message">
+          <div class="chat-header">
+            <span class="chat-username">${username}</span>
+            <span class="chat-level">Seviye ${message.level || 1}</span>
+          </div>
+          <p class="chat-text">${text}</p>
+          <small class="chat-timestamp">${stamp}</small>
+        </article>
+      `;
+    })
+    .join("");
+  dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
+}
+
 function handleTransfer(event) {
   event.preventDefault();
   const data = Object.fromEntries(new FormData(event.target));
   const amount = Number(data.amount);
+  if (!amount || amount <= 0) {
+    return showDialog("Geçerli bir tutar giriniz.", "error");
+  }
+  if (!/^\d{11}$/.test(data.identity || "")) {
+    return showDialog("Alıcı TC 11 haneli olmalıdır.", "error");
+  }
+  const recipient = state.users.find(
+    (user) => user.username === data.username && user.identity === data.identity
+  );
+  if (!recipient) {
+    return showDialog("Alıcı bilgileri eşleşmiyor.", "error");
+  }
   if (state.gameplay.balances.cash < amount) {
     return showDialog("Bakiyeniz yetersizdir!", "error");
   }
+  if (recipient.username === state.user.username) {
+    return showDialog("Kendine havale gönderemezsin.", "error");
+  }
   state.gameplay.balances.cash -= amount;
-  pushReceipt("Havale", { name: "Transfer", symbol: "TL" }, 1, amount);
+  pushReceipt(
+    `Havale (${recipient.username})`,
+    { name: "Transfer", symbol: "TL" },
+    1,
+    amount
+  );
+  const storage = loadGameplayStorage();
+  const recipientState = storage[recipient.username] || defaultGameplay();
+  recipientState.balances = recipientState.balances || { cash: 0, iron: 0 };
+  recipientState.balances.cash += amount;
+  recipientState.receipts = recipientState.receipts || [];
+  recipientState.receipts.unshift({
+    type: `Havale Giriş (${state.user.username})`,
+    currency: "Transfer",
+    symbol: "TL",
+    quantity: 1,
+    unitPrice: amount,
+    total: amount,
+    timestamp: getIstanbulDate().toLocaleString("tr-TR"),
+  });
+  storage[recipient.username] = recipientState;
+  storage[state.user.username] = state.gameplay;
+  persistGameplayStorage(storage);
   showDialog("Para gönderildi.", "success");
   event.target.reset();
   saveState();
@@ -436,16 +589,22 @@ function handleListing(event) {
   event.preventDefault();
   const { item, quantity, price } = Object.fromEntries(new FormData(event.target));
   const qty = Number(quantity);
-  const unitPrice = Number(price);
+  const totalPrice = Number(price);
+  if (!qty || !totalPrice) {
+    return showDialog("Geçerli adet ve toplam fiyat giriniz.", "error");
+  }
   if (state.gameplay.inventory[item] < qty) {
     return showDialog("Envanterde yeterli adet yok!", "error");
   }
   state.gameplay.inventory[item] -= qty;
+  const unitPrice = totalPrice / qty;
   const listing = {
     id: createListingId(),
     item,
     quantity: qty,
     price: unitPrice,
+    unitPrice,
+    totalPrice,
     seller: state.user.username,
     category: item,
     createdAt: Date.now(),
@@ -482,7 +641,8 @@ function handleMarketPurchase(event) {
   if (qty > listing.quantity) {
     return showDialog("Bu kadar stok yok.", "error");
   }
-  const total = qty * listing.price;
+  const unitPrice = listing.unitPrice ?? listing.price;
+  const total = qty * unitPrice;
   if (state.gameplay.balances.cash < total) {
     return showDialog("Bakiyeniz yetersizdir!", "error");
   }
@@ -495,12 +655,30 @@ function handleMarketPurchase(event) {
     state.gameplay.balances.iron = state.gameplay.inventory.demir;
   }
   listing.quantity -= qty;
+  listing.totalPrice = Math.max(0, (listing.totalPrice || 0) - total);
+  listing.unitPrice = unitPrice;
+  listing.price = unitPrice;
   pushReceipt(
     "Pazar Alış",
     { name: formatItem(listing.item), symbol: "Pazar" },
     qty,
-    listing.price
+    unitPrice
   );
+  const storage = loadGameplayStorage();
+  const sellerGameplay = storage[listing.seller] || defaultGameplay();
+  sellerGameplay.balances = sellerGameplay.balances || { cash: 0, iron: 0 };
+  sellerGameplay.balances.cash += total;
+  sellerGameplay.receipts = sellerGameplay.receipts || [];
+  sellerGameplay.receipts.unshift({
+    type: "Pazar Satış",
+    currency: formatItem(listing.item),
+    symbol: "Pazar",
+    quantity: qty,
+    unitPrice,
+    total,
+    timestamp: getIstanbulDate().toLocaleString("tr-TR"),
+  });
+  storage[listing.seller] = sellerGameplay;
   if (listing.quantity <= 0) {
     state.market = state.market.filter((entry) => entry.id !== listingId);
   }
@@ -509,6 +687,8 @@ function handleMarketPurchase(event) {
   renderInventory();
   renderMarket();
   saveState();
+  storage[state.user.username] = state.gameplay;
+  persistGameplayStorage(storage);
   saveMarketListings();
 }
 
@@ -520,6 +700,28 @@ function handleWork() {
   renderSummary();
   renderInventory();
   saveState();
+}
+
+function handleChatSubmit(event) {
+  event.preventDefault();
+  if (!state.user) {
+    return showDialog("Sohbet için giriş yapmalısın.", "error");
+  }
+  const formData = new FormData(event.target);
+  const message = (formData.get("message") || "").toString().trim();
+  if (!message) return;
+  const entry = {
+    id: `msg-${Date.now()}`,
+    username: state.user.username,
+    level: state.user.level || 1,
+    message,
+    timestamp: getIstanbulDate().toISOString(),
+  };
+  state.chat.push(entry);
+  state.chat = state.chat.slice(-200);
+  saveChatMessages();
+  event.target.reset();
+  renderChat();
 }
 
 function attachEvents() {
@@ -611,6 +813,7 @@ function attachEvents() {
   dom.listingForm.addEventListener("submit", handleListing);
   dom.marketList.addEventListener("submit", handleMarketPurchase);
   dom.workButton.addEventListener("click", handleWork);
+  dom.chatForm.addEventListener("submit", handleChatSubmit);
   dom.marketSearch.addEventListener("input", renderMarket);
   dom.marketFilter.addEventListener("change", renderMarket);
   dom.receiptButton.addEventListener("click", () => {
@@ -645,10 +848,23 @@ function finalizeLogin() {
   renderInventory();
   renderMarket();
   renderCurrencies();
+  renderChat();
 }
 
 function init() {
   attachEvents();
+  updateClock();
+  setInterval(updateClock, 1000);
+  window.addEventListener("storage", (event) => {
+    if (event.key === CHAT_STORAGE) {
+      renderChat();
+    }
+    if (event.key === MARKET_STORAGE) {
+      state.market = loadMarketListings();
+      normalizeMarketListings();
+      renderMarket();
+    }
+  });
   if (state.users.length) {
     authTabs[1].click();
   }
