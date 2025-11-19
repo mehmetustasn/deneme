@@ -143,28 +143,16 @@
           <button class="bank-tab" data-target="credit-pay-view">Kredi Öde</button>
           <button class="bank-tab" data-target="deposit-view">Vadeli Hesap</button>
           <button class="bank-tab" data-target="transfer-view">Havale / EFT</button>
+          <button class="bank-tab" data-target="earn-view">Para Kazan</button>
+          <button class="bank-tab" data-target="history-view">Hesap Hareketleri</button>
         </aside>
         <div class="bank-content">
           <div id="currency-view" class="bank-view active">
+            <p class="currency-hint">
+              Saat 09:00-21:00 arasında açık olan döviz masasından istediğin işlemi
+              seç. Her döviz kartına tıklayarak işlem formunu açıp kapatabilirsin.
+            </p>
             <div class="currency-list" id="currency-list"></div>
-            <form id="currency-form" class="trade-form">
-              <label>Adet Giriniz<input name="amount" type="number" min="1" required /></label>
-              <label>İşlem Seçiniz
-                <select name="action" required>
-                  <option value="">Seçiniz</option>
-                  <option value="buy">Alış Yap</option>
-                  <option value="sell">Satış Yap</option>
-                </select>
-              </label>
-              <div class="trade-summary">
-                <p>Seçili Döviz: <strong id="selected-currency">-</strong></p>
-                <p>Birim Fiyat: <strong id="selected-price">₺0</strong></p>
-              </div>
-              <div class="trade-actions">
-                <button type="submit" class="btn-positive">İşlem Yap</button>
-                <button type="button" id="receipt-button" class="btn-ghost">Dekont</button>
-              </div>
-            </form>
           </div>
           <div id="credit-view" class="bank-view">
             <h3>Kredi Çek</h3>
@@ -187,6 +175,16 @@
               <button type="submit" class="btn-positive">Gönder</button>
             </form>
           </div>
+          <div id="earn-view" class="bank-view">
+            <h3>Para Kazan</h3>
+            <p>Bankanın günlük görevine katılarak 100.000 ₺ kazan.</p>
+            <button id="earn-button" class="btn-positive huge">Çalış ve Kazan</button>
+          </div>
+          <div id="history-view" class="bank-view">
+            <h3>Hesap Hareketleri</h3>
+            <p>Havale / EFT gönderim ve girişlerin tam listesi.</p>
+            <ul id="account-history" class="history-list"></ul>
+          </div>
         </div>
       </div>
     </section>
@@ -200,16 +198,11 @@
         </div>
       </div>
       <div class="panel-body">
+        <div class="inventory-meta">
+          <p>Kapasite: <strong id="inventory-capacity">0/100</strong></p>
+          <small>1 slot = 1.000 adet</small>
+        </div>
         <div id="inventory-list" class="inventory-grid"></div>
-        <form id="listing-form" class="listing-form">
-          <h3>Eşyayı Satışa Koy</h3>
-          <label>Eşya Seç
-            <select name="item" required></select>
-          </label>
-          <label>Adet<input name="quantity" type="number" min="1" required /></label>
-          <label>Toplam Fiyat (₺)<input name="price" type="number" min="1" required /></label>
-          <button type="submit" class="btn-positive">Satışa Koy</button>
-        </form>
       </div>
     </section>
 
@@ -225,10 +218,14 @@
         <div class="market-filters">
           <input type="search" id="market-search" placeholder="Eşya ara..." />
           <select id="market-filter">
-            <option value="all">Tümü</option>
+            <option value="all">Kategori: Tümü</option>
             <option value="demir">Demir</option>
-            <option value="tohum">Tohum</option>
-            <option value="makine">Makine</option>
+            <option value="kagit">Kağıt</option>
+          </select>
+          <select id="market-sort">
+            <option value="new">Sırala: En Yeni</option>
+            <option value="cheap">Ucuz</option>
+            <option value="expensive">Pahalı</option>
           </select>
         </div>
         <div id="market-list" class="market-grid"></div>
@@ -237,15 +234,29 @@
 
     <section id="factory-panel" class="panel hidden">
       <div class="panel-header">
-        <h2>Demir Fabrikası</h2>
+        <h2>Fabrikalar</h2>
         <div class="panel-actions">
           <button class="home-button btn-ghost" data-close>Ana Ekran</button>
           <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body factory-panel">
-        <p>Çalış butonuna bastığında 2.000 ile 5.000 arasında demir elde edersin.</p>
-        <button id="work-button" class="btn-positive huge">Çalış</button>
+        <article class="factory-card">
+          <div class="factory-icon">⛏️</div>
+          <div class="factory-copy">
+            <h3>Demir Fabrikası</h3>
+            <p>Çalışarak 2.000 - 5.000 adet demir kazanabilirsin.</p>
+          </div>
+          <button class="btn-positive factory-work" data-resource="demir">Çalış</button>
+        </article>
+        <article class="factory-card">
+          <div class="factory-icon">📄</div>
+          <div class="factory-copy">
+            <h3>Kağıt Fabrikası</h3>
+            <p>Çalışarak 2.000 - 5.000 adet kağıt kazanabilirsin.</p>
+          </div>
+          <button class="btn-positive factory-work" data-resource="kagit">Çalış</button>
+        </article>
       </div>
     </section>
 
