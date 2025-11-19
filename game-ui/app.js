@@ -31,8 +31,8 @@ const dom = {
   marketList: document.getElementById("market-list"),
   marketSearch: document.getElementById("market-search"),
   marketFilter: document.getElementById("market-filter"),
-  workButton: document.getElementById("work-button"),
   currencyList: document.getElementById("currency-list"),
+  currencyFormAnchor: document.getElementById("currency-form-anchor"),
   selectedCurrency: document.getElementById("selected-currency"),
   selectedPrice: document.getElementById("selected-price"),
   currencyForm: document.getElementById("currency-form"),
@@ -49,6 +49,8 @@ const dom = {
   peekIdentity: document.getElementById("peek-identity"),
   peekMotto: document.getElementById("peek-motto"),
 };
+
+dom.factoryButtons = document.querySelectorAll("[data-factory-work]");
 
 const defaultUserShape = {
   level: 1,
@@ -108,11 +110,23 @@ const state = {
   chat: loadChatMessages(),
 };
 
+let activeCurrencyId = null;
+
 const inventoryVisuals = {
   demir: { icon: "⛓️", label: "Demir" },
   tohum: { icon: "🌱", label: "Premium Tohum" },
   makine: { icon: "⚙️", label: "Hasat Makinesi" },
+  kagit: { icon: "📄", label: "Kağıt" },
 };
+
+function ensureInventoryDefaults() {
+  state.gameplay.inventory = state.gameplay.inventory || {};
+  Object.keys(inventoryVisuals).forEach((key) => {
+    if (typeof state.gameplay.inventory[key] !== "number") {
+      state.gameplay.inventory[key] = 0;
+    }
+  });
+}
 
 function loadUsers() {
   try {
@@ -166,6 +180,7 @@ function defaultGameplay() {
       demir: 0,
       tohum: 10,
       makine: 1,
+      kagit: 0,
     },
     listings: [],
     receipts: [],
@@ -274,6 +289,7 @@ function closePanels() {
 
 function renderSummary() {
   if (!state.user) return;
+  ensureInventoryDefaults();
   dom.playerName.textContent = state.user.username;
   dom.playerLevel.textContent = `Seviye ${state.user.level ?? 1}`;
   dom.cashBalance.textContent = formatCurrency(state.gameplay.balances.cash);
@@ -295,6 +311,7 @@ function renderProfile() {
 }
 
 function renderInventory() {
+  ensureInventoryDefaults();
   const entries = Object.entries(state.gameplay.inventory || {});
   if (!entries.length) {
     dom.inventoryList.innerHTML =
@@ -376,14 +393,13 @@ function renderMarket() {
 }
 
 function renderCurrencies() {
+  const previousSelection = activeCurrencyId;
   dom.currencyList.innerHTML = defaultCurrencies
-    .map((currency, index) => {
+    .map((currency) => {
       const holdings = state.gameplay.currencies[currency.id]?.holdings || 0;
       const change = calculateChange(currency);
       return `
-        <article class="currency-card" data-currency="${currency.id}" ${
-          index === 0 ? "data-selected" : ""
-        }>
+        <article class="currency-card" data-currency="${currency.id}">
           <div>
             <h4>${currency.name}</h4>
             <small>${currency.symbol}</small>
@@ -395,12 +411,17 @@ function renderCurrencies() {
           <p>Dünkü kapanış: ${formatCurrency(currency.previousClose)}</p>
           <p>Hacim: ${currency.volume.toLocaleString("tr-TR")}</p>
           <p>Bakiye: ${holdings.toLocaleString("tr-TR")} adet</p>
+          <div class="currency-details" data-details="${currency.id}"></div>
         </article>
       `;
     })
     .join("");
 
-  selectCurrency(defaultCurrencies[0].id);
+  if (previousSelection) {
+    selectCurrency(previousSelection, { force: true });
+  } else {
+    collapseCurrency();
+  }
 }
 
 function calculateChange(currency) {
@@ -421,6 +442,7 @@ function formatItem(key) {
     demir: "Demir",
     tohum: "Premium Tohum",
     makine: "Hasat Makinesi",
+    kagit: "Kağıt",
   };
   return mapping[key] || key || "Eşya";
 }
@@ -440,23 +462,64 @@ function escapeHtml(value = "") {
   return value.replace(/[&<>"']/g, (char) => map[char] || char);
 }
 
-function selectCurrency(id) {
-  const cards = document.querySelectorAll(".currency-card");
-  cards.forEach((card) => {
-    if (card.dataset.currency === id) {
-      card.classList.add("active");
-      card.dataset.selected = "true";
-    } else {
-      card.classList.remove("active");
-      card.removeAttribute("data-selected");
+function selectCurrency(id, options = {}) {
+  if (!id) return;
+  const { force = false } = options;
+  if (!force && activeCurrencyId === id) {
+    collapseCurrency();
+    return;
+  }
+  collapseCurrency();
+  activeCurrencyId = id;
+  const card = dom.currencyList.querySelector(`[data-currency="${id}"]`);
+  if (!card) {
+    activeCurrencyId = null;
+    return;
+  }
+  card.classList.add("active");
+  card.dataset.selected = "true";
+  const details = card.querySelector(`[data-details="${id}"]`);
+  if (details) {
+    details.classList.add("expanded");
+    if (dom.currencyForm) {
+      details.appendChild(dom.currencyForm);
     }
-  });
+  }
+  if (dom.currencyForm) {
+    dom.currencyForm.classList.remove("hidden");
+    dom.currencyForm.dataset.selected = id;
+  }
   const currency = defaultCurrencies.find((item) => item.id === id);
   if (currency) {
-    dom.currencyForm.dataset.selected = id;
     dom.selectedCurrency.textContent = currency.name;
     dom.selectedPrice.textContent = formatCurrency(currency.currentPrice);
   }
+}
+
+function collapseCurrency() {
+  if (activeCurrencyId) {
+    const card = dom.currencyList.querySelector(
+      `[data-currency="${activeCurrencyId}"]`
+    );
+    if (card) {
+      card.classList.remove("active");
+      card.removeAttribute("data-selected");
+      const details = card.querySelector(`[data-details="${activeCurrencyId}"]`);
+      if (details) {
+        details.classList.remove("expanded");
+      }
+    }
+  }
+  if (dom.currencyForm) {
+    dom.currencyForm.dataset.selected = "";
+    dom.currencyForm.classList.add("hidden");
+    if (dom.currencyFormAnchor && dom.currencyForm.parentElement !== dom.currencyFormAnchor) {
+      dom.currencyFormAnchor.appendChild(dom.currencyForm);
+    }
+  }
+  dom.selectedCurrency.textContent = "-";
+  dom.selectedPrice.textContent = "₺0";
+  activeCurrencyId = null;
 }
 
 function getIstanbulDate() {
@@ -682,6 +745,7 @@ function handleTransfer(event) {
 
 function handleListing(event) {
   event.preventDefault();
+  ensureInventoryDefaults();
   const { item, quantity, price } = Object.fromEntries(new FormData(event.target));
   const qty = Number(quantity);
   const totalPrice = Number(price);
@@ -721,6 +785,7 @@ function handleMarketPurchase(event) {
   if (!form) return;
   event.preventDefault();
   if (!state.user) return;
+  ensureInventoryDefaults();
   const listingId = form.dataset.id;
   const listing = state.market.find((entry) => entry.id === listingId);
   if (!listing) {
@@ -794,11 +859,24 @@ function handleMarketPurchase(event) {
   saveMarketListings();
 }
 
-function handleWork() {
-  const earned = Math.floor(Math.random() * 3001) + 2000;
-  state.gameplay.inventory.demir += earned;
-  state.gameplay.balances.iron = state.gameplay.inventory.demir;
-  showDialog(`${earned.toLocaleString("tr-TR")} adet demir üretildi.`, "success");
+function handleWork(factory = "iron") {
+  ensureInventoryDefaults();
+  let min = 2000;
+  let max = 5000;
+  let key = "demir";
+  let label = "demir";
+  if (factory === "paper") {
+    min = 500;
+    max = 1500;
+    key = "kagit";
+    label = "kağıt";
+  }
+  const earned = Math.floor(Math.random() * (max - min + 1)) + min;
+  state.gameplay.inventory[key] += earned;
+  if (key === "demir") {
+    state.gameplay.balances.iron = state.gameplay.inventory.demir;
+  }
+  showDialog(`${earned.toLocaleString("tr-TR")} adet ${label} üretildi.`, "success");
   renderSummary();
   renderInventory();
   saveState();
@@ -866,6 +944,7 @@ function attachEvents() {
     state.user = newUser;
     saveUsers();
     state.gameplay = defaultGameplay();
+    ensureInventoryDefaults();
     saveState();
     finalizeLogin();
   });
@@ -915,6 +994,7 @@ function attachEvents() {
   );
 
   dom.currencyList.addEventListener("click", (event) => {
+    if (event.target.closest("#currency-form")) return;
     const card = event.target.closest(".currency-card");
     if (!card) return;
     selectCurrency(card.dataset.currency);
@@ -924,7 +1004,9 @@ function attachEvents() {
   dom.transferForm.addEventListener("submit", handleTransfer);
   dom.listingForm.addEventListener("submit", handleListing);
   dom.marketList.addEventListener("submit", handleMarketPurchase);
-  dom.workButton.addEventListener("click", handleWork);
+  dom.factoryButtons.forEach((btn) =>
+    btn.addEventListener("click", () => handleWork(btn.dataset.factoryWork))
+  );
   dom.chatForm.addEventListener("submit", handleChatSubmit);
   if (dom.chatMessages) {
     dom.chatMessages.addEventListener("click", handleChatClick);
@@ -955,6 +1037,7 @@ function finalizeLogin() {
     saveUsers();
   }
   state.gameplay = loadState(state.user.username);
+  ensureInventoryDefaults();
   state.market = loadMarketListings();
   normalizeMarketListings();
   authOverlay.classList.add("hidden");
