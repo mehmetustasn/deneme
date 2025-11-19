@@ -1,12 +1,16 @@
 :root {
-  --bg: #0f172a;
-  --panel: #162041;
-  --panel-light: #1d2b52;
-  --accent: #00f7b4;
-  --accent-2: #ff7b9c;
-  --text: #f8fbff;
-  --muted: #9fb2d8;
-  --border: rgba(255, 255, 255, 0.08);
+  --bg: #030613;
+  --panel: rgba(13, 18, 38, 0.85);
+  --panel-light: rgba(24, 32, 64, 0.85);
+  --surface: rgba(19, 26, 52, 0.95);
+  --accent: #7c5dff;
+  --accent-2: #00f5b7;
+  --positive: #31e07a;
+  --negative: #ff4d6d;
+  --text: #f4f7ff;
+  --muted: #9ea8c9;
+  --border: rgba(255, 255, 255, 0.12);
+  --shadow: 0 30px 70px rgba(3, 5, 17, 0.85);
   font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 }
@@ -17,9 +21,22 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #1f2a48, #0b1021);
   min-height: 100vh;
   color: var(--text);
+  background: var(--bg);
+  position: relative;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 20%, rgba(124, 93, 255, 0.25), transparent 45%),
+    radial-gradient(circle at 80% 0%, rgba(0, 245, 183, 0.25), transparent 40%);
+  filter: blur(40px);
+  z-index: -2;
 }
 
 button,
@@ -31,6 +48,8 @@ select {
 #app {
   min-height: 100vh;
   padding: 2rem clamp(1rem, 4vw, 4rem) 4rem;
+  position: relative;
+  z-index: 1;
 }
 
 .hidden {
@@ -65,12 +84,13 @@ select {
 
 .balances {
   display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
-  gap: 1rem;
-  background: var(--panel);
-  padding: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.2rem;
+  background: linear-gradient(120deg, rgba(124, 93, 255, 0.08), rgba(0, 245, 183, 0.05));
+  padding: 1.2rem;
   border-radius: 1.5rem;
   border: 1px solid var(--border);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
 }
 
 .quick-actions {
@@ -82,10 +102,11 @@ select {
 .action-card {
   background: var(--panel);
   border-radius: 1.5rem;
-  padding: 1.5rem;
-  border: 1px solid var(--border);
+  padding: 1.6rem;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: transform 0.2s ease, border 0.2s ease, background 0.2s ease;
+  transition: transform 0.25s ease, border 0.25s ease, background 0.25s ease;
+  box-shadow: 0 20px 40px rgba(3, 6, 25, 0.35);
 }
 
 .action-card span {
@@ -97,15 +118,15 @@ select {
 }
 
 .action-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--accent);
+  transform: translateY(-6px);
+  border-color: rgba(124, 93, 255, 0.6);
   background: var(--panel-light);
 }
 
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 8, 20, 0.92);
+  background: rgba(3, 5, 15, 0.92);
   display: grid;
   place-items: center;
   z-index: 20;
@@ -113,10 +134,11 @@ select {
 
 .auth-card {
   width: min(480px, 92vw);
-  background: var(--panel);
+  background: var(--surface);
   border-radius: 1.5rem;
-  padding: 2rem;
+  padding: 2.2rem;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
 .auth-tabs {
@@ -129,15 +151,16 @@ select {
   flex: 1;
   border-radius: 999px;
   padding: 0.7rem 1rem;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   cursor: pointer;
 }
 
 .auth-tab.active {
-  background: var(--accent);
-  color: #041c24;
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  color: #050912;
+  border-color: transparent;
 }
 
 .auth-form {
@@ -157,44 +180,78 @@ label {
   font-size: 0.9rem;
 }
 
+.form-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
 input,
 select,
 textarea {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border);
-  border-radius: 0.8rem;
-  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.9rem;
+  padding: 0.85rem 1rem;
   color: var(--text);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid rgba(0, 245, 183, 0.45);
+  border-color: rgba(0, 245, 183, 0.45);
+  box-shadow: 0 0 0 4px rgba(0, 245, 183, 0.12);
 }
 
 button {
   border: none;
-  border-radius: 0.9rem;
-  padding: 0.8rem 1.4rem;
+  border-radius: 0.95rem;
+  padding: 0.85rem 1.4rem;
   cursor: pointer;
   font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
-button.primary {
-  background: linear-gradient(120deg, var(--accent), #00d4ff);
-  color: #02161a;
+.btn-positive {
+  background: linear-gradient(135deg, var(--positive), #13bb57);
+  color: #041c12;
+  box-shadow: 0 12px 30px rgba(49, 224, 122, 0.35);
+}
+
+.btn-negative {
+  background: linear-gradient(135deg, var(--negative), #c9184a);
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(255, 77, 109, 0.35);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 button:hover {
   transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+button:disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .panel {
   position: fixed;
   inset: 5vh clamp(1rem, 4vw, 6rem);
-  background: rgba(10, 15, 34, 0.95);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1.5rem;
   display: flex;
   flex-direction: column;
   z-index: 10;
   backdrop-filter: blur(24px);
+  box-shadow: var(--shadow);
 }
 
 .panel-header {
@@ -202,7 +259,8 @@ button:hover {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(90deg, rgba(124, 93, 255, 0.12), transparent);
 }
 
 .panel-actions {
@@ -212,8 +270,6 @@ button:hover {
 }
 
 .home-button {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text);
   font-size: 0.85rem;
   padding: 0.4rem 0.9rem;
 }
@@ -225,11 +281,12 @@ button:hover {
 }
 
 .close-panel {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
+  color: #fff;
   width: 38px;
   height: 38px;
   font-size: 1.3rem;
+  display: grid;
+  place-items: center;
 }
 
 .bank-grid {
@@ -245,13 +302,15 @@ button:hover {
 }
 
 .bank-tab {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 0.8rem 1rem;
 }
 
 .bank-tab.active {
-  border-color: var(--accent);
-  background: rgba(0, 247, 180, 0.15);
+  border-color: rgba(124, 93, 255, 0.5);
+  background: rgba(124, 93, 255, 0.12);
 }
 
 .bank-view {
@@ -270,31 +329,36 @@ button:hover {
 }
 
 .currency-card {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.02);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
 }
 
 .currency-card.active {
-  border-color: var(--accent);
-  background: rgba(0, 247, 180, 0.07);
+  border-color: rgba(0, 245, 183, 0.5);
+  background: rgba(0, 245, 183, 0.08);
 }
 
 .currency-card small {
   color: var(--muted);
 }
 
+.price-change {
+  font-weight: 600;
+}
+
 .price-change.negative {
-  color: #ff6b7a;
+  color: var(--negative);
 }
 
 .price-change.positive {
-  color: #57ffb5;
+  color: var(--positive);
 }
 
 .trade-form {
@@ -316,27 +380,71 @@ button:hover {
 
 .inventory-card,
 .market-card {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 1.1rem;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+}
+
+.market-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.market-card .badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.market-card footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.purchase-form {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+.purchase-form input {
+  flex: 1;
 }
 
 .listing-form,
 #transfer-form,
 #currency-form,
 #profile-form {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.2rem;
-  padding: 1rem;
+  padding: 1.2rem;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
 }
 
 .market-filters {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1rem;
+  border-radius: 1.1rem;
 }
 
 .market-grid {
@@ -373,6 +481,19 @@ button.huge {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.muted {
+  color: var(--muted);
+}
+
+.empty-state {
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 1.2rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+  width: 100%;
+}
+
 .dialog {
   position: fixed;
   inset: 0;
@@ -405,13 +526,13 @@ button.huge {
 }
 
 .dialog-card[data-variant="success"] {
-  border-color: var(--accent);
-  box-shadow: 0 40px 120px rgba(76, 175, 80, 0.35);
+  border-color: rgba(49, 224, 122, 0.7);
+  box-shadow: 0 40px 120px rgba(49, 224, 122, 0.35);
 }
 
 .dialog-card[data-variant="error"] {
-  border-color: rgba(255, 94, 94, 0.7);
-  box-shadow: 0 40px 120px rgba(255, 94, 94, 0.35);
+  border-color: rgba(255, 77, 109, 0.7);
+  box-shadow: 0 40px 120px rgba(255, 77, 109, 0.35);
 }
 
 @media (max-width: 960px) {

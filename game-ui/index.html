@@ -26,14 +26,14 @@
           <label>Kullanıcı Adı<input name="username" required /></label>
           <label>Şifre<input name="password" type="password" required /></label>
           <label>Telefon Numarası<input name="phone" type="tel" required /></label>
-          <label>TC Kimlik No<input name="identity" required maxlength="11" minlength="11" /></label>
-          <button type="submit">Kaydı Tamamla</button>
+          <p class="form-hint">TC kimliği oyun tarafından atanır ve profilinde görünür.</p>
+          <button type="submit" class="btn-positive">Kaydı Tamamla</button>
         </form>
         <form id="login-form" class="auth-form">
           <h2>Hesabına Dön</h2>
           <label>Kullanıcı Adı<input name="username" required /></label>
           <label>Şifre<input name="password" type="password" required /></label>
-          <button type="submit">Giriş Yap</button>
+          <button type="submit" class="btn-positive">Giriş Yap</button>
         </form>
       </div>
     </div>
@@ -102,8 +102,8 @@
       <div class="panel-header">
         <h2>Profilim</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body">
@@ -115,7 +115,7 @@
         <form id="profile-form">
           <label>Telefon Numarası<input name="phone" type="tel" required /></label>
           <label>Kurtarma E-postası<input name="email" type="email" placeholder="ornek@mail.com" /></label>
-          <button type="submit">Profili Güncelle</button>
+          <button type="submit" class="btn-positive">Profili Güncelle</button>
         </form>
       </div>
     </section>
@@ -124,8 +124,8 @@
       <div class="panel-header">
         <h2>Neo Banka</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body bank-grid">
@@ -153,8 +153,8 @@
                 <p>Birim Fiyat: <strong id="selected-price">₺0</strong></p>
               </div>
               <div class="trade-actions">
-                <button type="submit" class="primary">İşlem Yap</button>
-                <button type="button" id="receipt-button">Dekont</button>
+                <button type="submit" class="btn-positive">İşlem Yap</button>
+                <button type="button" id="receipt-button" class="btn-ghost">Dekont</button>
               </div>
             </form>
           </div>
@@ -176,7 +176,7 @@
               <label>Alıcı TC<input name="identity" required maxlength="11" minlength="11" /></label>
               <label>Kullanıcı Adı<input name="username" required /></label>
               <label>Tutar (₺)<input name="amount" type="number" min="1" required /></label>
-              <button type="submit" class="primary">Gönder</button>
+              <button type="submit" class="btn-positive">Gönder</button>
             </form>
           </div>
         </div>
@@ -187,8 +187,8 @@
       <div class="panel-header">
         <h2>Envanter</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body">
@@ -200,7 +200,7 @@
           </label>
           <label>Adet<input name="quantity" type="number" min="1" required /></label>
           <label>Birim Fiyat (₺)<input name="price" type="number" min="1" required /></label>
-          <button type="submit" class="primary">Satışa Koy</button>
+          <button type="submit" class="btn-positive">Satışa Koy</button>
         </form>
       </div>
     </section>
@@ -209,8 +209,8 @@
       <div class="panel-header">
         <h2>Pazar Yeri</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body">
@@ -231,13 +231,13 @@
       <div class="panel-header">
         <h2>Demir Fabrikası</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body factory-panel">
         <p>Çalış butonuna bastığında 2.000 ile 5.000 arasında demir elde edersin.</p>
-        <button id="work-button" class="primary huge">Çalış</button>
+        <button id="work-button" class="btn-positive huge">Çalış</button>
       </div>
     </section>
 
@@ -245,8 +245,8 @@
       <div class="panel-header">
         <h2>Çiftliğim</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body">
@@ -258,8 +258,8 @@
       <div class="panel-header">
         <h2>Çiftlik İlanları</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body">
@@ -271,8 +271,8 @@
       <div class="panel-header">
         <h2>Dekontlar</h2>
         <div class="panel-actions">
-          <button class="home-button" data-close>Ana Ekran</button>
-          <button class="close-panel" data-close>&times;</button>
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
       <div class="panel-body">
@@ -289,7 +289,7 @@
     >
       <div class="dialog-card" data-variant="info">
         <p id="dialog-message">Bilgilendirme mesajı burada görünecek.</p>
-        <button id="dialog-close" class="primary">Tamam</button>
+        <button id="dialog-close" class="btn-positive">Tamam</button>
       </div>
     </div>
 
