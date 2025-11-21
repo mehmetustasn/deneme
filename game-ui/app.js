@@ -46,6 +46,30 @@ const dom = {
   peekLevel: document.getElementById("peek-level"),
   peekIdentity: document.getElementById("peek-identity"),
   peekMotto: document.getElementById("peek-motto"),
+  vipToggle: document.getElementById("vip-toggle"),
+  farmViews: document.querySelectorAll(".farm-view"),
+  farmNavButtons: document.querySelectorAll("[data-farm-nav]"),
+  farmBackButtons: document.querySelectorAll("[data-farm-back]"),
+  farmHero: document.getElementById("field-hero"),
+  farmAvailable: document.getElementById("field-available"),
+  farmState: document.getElementById("field-state"),
+  plantOpen: document.getElementById("plant-open"),
+  expandOpen: document.getElementById("expand-open"),
+  plantModal: document.getElementById("plant-modal"),
+  plantInput: document.getElementById("plant-input"),
+  plantCost: document.getElementById("plant-cost"),
+  yieldInfo: document.getElementById("yield-info"),
+  plantConfirm: document.getElementById("plant-confirm"),
+  expandModal: document.getElementById("expand-modal"),
+  expandCurrent: document.getElementById("expand-current"),
+  expandCost: document.getElementById("expand-cost"),
+  expandConfirm: document.getElementById("expand-confirm"),
+  vipStatus: document.getElementById("vip-status"),
+  farmerBonus: document.getElementById("farmer-bonus"),
+  farmInfoButton: document.getElementById("farm-info-button"),
+  plantCloseButtons: document.querySelectorAll("[data-plant-close]"),
+  expandCloseButtons: document.querySelectorAll("[data-expand-close]"),
+};
 };
 
 dom.factoryButtons = document.querySelectorAll("[data-factory]");
@@ -60,6 +84,11 @@ const defaultUserShape = {
 const GAMEPLAY_STORAGE = "ticarion-gameplay";
 const MARKET_STORAGE = "ticarion-market";
 const CHAT_STORAGE = "ticarion-chat";
+const CURRENCY_CAP = 100000;
+const FARM_BASE_SIZE = 100;
+const FARM_MAX_SIZE = 1000;
+const FARM_BASE_UPGRADE_COST = 100;
+const FARM_COOLDOWN = 6 * 60 * 60 * 1000;
 
 function normalizeUser(user = {}) {
   return { ...defaultUserShape, ...user };
@@ -116,9 +145,13 @@ const state = {
   chat: loadChatMessages(),
 };
 
+let farmViewStack = ["home"];
+
 const inventoryVisuals = {
   demir: { icon: "⛓️", label: "Demir", accent: "iron" },
   kagit: { icon: "📄", label: "Kağıt", accent: "paper" },
+  bugday: { icon: "🌾", label: "Buğday", accent: "wheat" },
+  saman: { icon: "🟫", label: "Saman", accent: "hay" },
 };
 
 function loadUsers() {
@@ -165,6 +198,8 @@ function defaultGameplay() {
       cash: 150000,
       iron: 0,
     },
+    vipActive: false,
+    farmerBonus: 0,
     currencies: defaultCurrencies.reduce((acc, currency) => {
       acc[currency.id] = { holdings: 0 };
       return acc;
@@ -172,11 +207,20 @@ function defaultGameplay() {
     inventory: {
       demir: 0,
       kagit: 0,
+      bugday: 0,
+      saman: 0,
     },
     listings: [],
     receipts: [],
     transactions: [],
     factoryCooldowns: {},
+    farm: {
+      size: FARM_BASE_SIZE,
+      upgradeLevel: 0,
+      plantedArea: 0,
+      plantedAt: null,
+      harvestReadyAt: null,
+    },
   };
 }
 
@@ -219,6 +263,7 @@ function ensureGameplayShape(payload = {}) {
     receipts: payload.receipts || [],
     transactions: payload.transactions || [],
     factoryCooldowns: payload.factoryCooldowns || {},
+    farm: { ...base.farm, ...(payload.farm || {}) },
   };
 
   merged.currencies = defaultCurrencies.reduce((acc, currency) => {
@@ -294,6 +339,11 @@ function togglePanel(panelId, open = true) {
     if (panelId === "chat-panel") {
       renderChat();
     }
+    if (panelId === "farm-panel") {
+      farmViewStack = ["home"];
+      showFarmView("home");
+      renderFarm();
+    }
   } else {
     panel.classList.add("hidden");
   }
@@ -312,6 +362,8 @@ function renderSummary() {
     state.gameplay.inventory?.demir ?? state.gameplay.balances.iron ?? 0;
   renderAccountHistory();
   renderFactories();
+  renderVip();
+  renderFarm();
 }
 
 function renderProfile() {
@@ -323,6 +375,259 @@ function renderProfile() {
   dom.profileForm.phone.value = state.user.phone || "";
   dom.profileForm.email.value = state.user.email || "";
   dom.profileForm.motto.value = state.user.motto || "";
+}
+
+function renderVip() {
+  if (!dom.vipToggle) return;
+  if (state.gameplay.vipActive) {
+    dom.vipToggle.textContent = "Vip'i İptal Et";
+    dom.vipToggle.classList.remove("btn-positive");
+    dom.vipToggle.classList.add("btn-negative");
+  } else {
+    dom.vipToggle.textContent = "Vip ol";
+    dom.vipToggle.classList.remove("btn-negative");
+    dom.vipToggle.classList.add("btn-positive");
+  }
+}
+
+function farmYieldRange(area = 1) {
+  const vipMultiplier = state.gameplay.vipActive ? 2 : 1;
+  const farmerBonus = (state.gameplay.farmerBonus || 0) / 100 + 1;
+  const wheatMin = 500 * area * vipMultiplier * farmerBonus;
+  const wheatMax = 5000 * area * vipMultiplier * farmerBonus;
+  const hayMin = 1000 * area * vipMultiplier * farmerBonus;
+  const hayMax = 10000 * area * vipMultiplier * farmerBonus;
+  return {
+    wheatMin: Math.round(wheatMin),
+    wheatMax: Math.round(wheatMax),
+    hayMin: Math.round(hayMin),
+    hayMax: Math.round(hayMax),
+  };
+}
+
+function renderFarm() {
+  if (!dom.farmViews || !dom.farmViews.length) return;
+  const farm = state.gameplay.farm || defaultGameplay().farm;
+  if (dom.farmAvailable) {
+    dom.farmAvailable.textContent = `Ekilebilir ${farm.size.toLocaleString(
+      "tr-TR"
+    )} m2 tarlanız mevcut`;
+  }
+  if (dom.vipStatus) {
+    dom.vipStatus.textContent = state.gameplay.vipActive
+      ? "2x VİP Aktif"
+      : "2x VİP Pasif";
+    dom.vipStatus.classList.toggle("positive", state.gameplay.vipActive);
+    dom.vipStatus.classList.toggle("negative", !state.gameplay.vipActive);
+  }
+  if (dom.farmerBonus) {
+    const bonus = state.gameplay.farmerBonus || 0;
+    dom.farmerBonus.textContent = `Çiftçi bonusunuz: %${bonus}`;
+  }
+  renderFieldState();
+}
+
+function renderFieldState() {
+  if (!dom.farmState) return;
+  const farm = state.gameplay.farm || defaultGameplay().farm;
+  const now = Date.now();
+  const planted = farm.plantedArea || 0;
+  dom.farmState.innerHTML = "";
+  if (dom.plantOpen) {
+    dom.plantOpen.disabled = planted > 0;
+  }
+  if (dom.expandOpen) {
+    dom.expandOpen.disabled = planted > 0;
+  }
+  if (dom.farmHero) {
+    dom.farmHero.classList.toggle("planted", planted > 0);
+  }
+  if (!planted) {
+    dom.farmState.innerHTML =
+      '<p class="muted">Henüz ekim yapmadın. "Tarlayı Ek" ile başla.</p>';
+    return;
+  }
+  const remaining = (farm.harvestReadyAt || 0) - now;
+  if (remaining > 0) {
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+    dom.farmState.innerHTML = `
+      <div class="field-status">
+        <p class="positive">${planted.toLocaleString("tr-TR")} m2 Arazi Ekilmiştir</p>
+        <p class="negative">Toplama İçin Kalan Süre</p>
+        <p class="countdown">${String(hours).padStart(2, "0")}:${String(
+      minutes
+    ).padStart(2, "0")}</p>
+      </div>
+    `;
+  } else {
+    dom.farmState.innerHTML = `
+      <div class="field-status ready">
+        <p class="positive">${planted.toLocaleString("tr-TR")} m2 Arazi Ekilmiştir</p>
+        <button class="btn-info" id="harvest-button">Topla</button>
+      </div>
+    `;
+    const harvestButton = document.getElementById("harvest-button");
+    if (harvestButton) {
+      harvestButton.addEventListener("click", handleHarvest);
+    }
+  }
+}
+
+function showFarmView(target) {
+  dom.farmViews.forEach((view) => {
+    view.classList.toggle("active", view.dataset.farmView === target);
+  });
+}
+
+function handleFarmNav(event) {
+  const target = event.target.closest("[data-farm-nav]");
+  if (!target) return;
+  const view = target.dataset.farmNav;
+  farmViewStack.push(view);
+  showFarmView(view);
+  if (view === "field") {
+    renderFieldState();
+  }
+}
+
+function handleFarmBack() {
+  farmViewStack.pop();
+  const previous = farmViewStack[farmViewStack.length - 1] || "home";
+  showFarmView(previous);
+}
+
+function openPlantModal() {
+  if (!dom.plantModal) return;
+  const farm = state.gameplay.farm;
+  dom.plantModal.classList.remove("hidden");
+  if (dom.plantInput) {
+    dom.plantInput.placeholder = `Max: ${farm.size} M2`;
+    dom.plantInput.value = "";
+  }
+  updatePlantPreview();
+}
+
+function closePlantModal() {
+  if (dom.plantModal) {
+    dom.plantModal.classList.add("hidden");
+  }
+}
+
+function updatePlantPreview() {
+  if (!dom.plantCost || !dom.plantInput) return;
+  const farm = state.gameplay.farm;
+  const area = Number(dom.plantInput.value) || 0;
+  const cost = area * 100;
+  dom.plantCost.textContent = `Ekilecek M2 İçin Gerekli TCOİN: ${cost.toLocaleString(
+    "tr-TR"
+  )}`;
+  const range = farmYieldRange(Math.max(area, 1));
+  dom.yieldInfo.innerHTML =
+    `Ekilen Araziden Ortalama minimum ile maksimum <span class="positive">${range.wheatMin.toLocaleString(
+      "tr-TR"
+    )}</span> ile <span class="positive">${range.wheatMax.toLocaleString(
+      "tr-TR"
+    )}</span> Arası Buğday, minimum ile maksimum <span class="positive">${range.hayMin.toLocaleString(
+      "tr-TR"
+    )}</span> ile <span class="positive">${range.hayMax.toLocaleString(
+      "tr-TR"
+    )}</span> arası Saman kazanırsınız`;
+}
+
+function handlePlantConfirm() {
+  const farm = state.gameplay.farm;
+  const amount = Number(dom.plantInput.value);
+  if (!amount || amount <= 0) {
+    return showDialog("Geçerli bir M2 giriniz.", "error");
+  }
+  if (amount > farm.size) {
+    return showDialog("Ekilebilir alanı aşıyorsun.", "error");
+  }
+  if (farm.plantedArea > 0) {
+    return showDialog("Tarla zaten ekili.", "error");
+  }
+  const cost = amount * 100;
+  const tcoin = state.gameplay.currencies.tcoin?.holdings || 0;
+  if (tcoin < cost) {
+    return showDialog("Yeterli TCoin yok.", "error");
+  }
+  state.gameplay.currencies.tcoin.holdings = tcoin - cost;
+  const now = Date.now();
+  farm.plantedArea = amount;
+  farm.plantedAt = now;
+  farm.harvestReadyAt = now + FARM_COOLDOWN;
+  closePlantModal();
+  renderCurrencies();
+  renderFieldState();
+  showDialog("Ekim tamamlandı.", "success");
+  saveState();
+}
+
+function openExpandModal() {
+  if (!dom.expandModal) return;
+  const farm = state.gameplay.farm;
+  const cost = FARM_BASE_UPGRADE_COST * Math.pow(2, farm.upgradeLevel);
+  dom.expandCurrent.textContent = `Mevcut tarla kapasiteniz: ${farm.size.toLocaleString(
+    "tr-TR"
+  )} m2`;
+  dom.expandCost.textContent = `Yükseltmek İçin Gerekli TCoin: ${cost.toLocaleString(
+    "tr-TR"
+  )}`;
+  dom.expandModal.dataset.cost = cost;
+  dom.expandModal.classList.remove("hidden");
+}
+
+function closeExpandModal() {
+  if (dom.expandModal) {
+    dom.expandModal.classList.add("hidden");
+  }
+}
+
+function handleExpandConfirm() {
+  const farm = state.gameplay.farm;
+  if (farm.size >= FARM_MAX_SIZE) {
+    return showDialog("Tarla maksimum seviyede.", "error");
+  }
+  const cost = Number(dom.expandModal?.dataset.cost) ||
+    FARM_BASE_UPGRADE_COST * Math.pow(2, farm.upgradeLevel);
+  const tcoin = state.gameplay.currencies.tcoin?.holdings || 0;
+  if (tcoin < cost) {
+    return showDialog("Yeterli TCoin yok.", "error");
+  }
+  state.gameplay.currencies.tcoin.holdings = tcoin - cost;
+  farm.size = Math.min(FARM_MAX_SIZE, farm.size + 10);
+  farm.upgradeLevel += 1;
+  closeExpandModal();
+  renderCurrencies();
+  renderFarm();
+  showDialog("Tarla büyütüldü.", "success");
+  saveState();
+}
+
+function handleHarvest() {
+  const farm = state.gameplay.farm;
+  if (!farm.plantedArea) return;
+  const range = farmYieldRange(farm.plantedArea);
+  const wheat = Math.floor(
+    Math.random() * (range.wheatMax - range.wheatMin + 1)
+  ) + range.wheatMin;
+  const hay = Math.floor(Math.random() * (range.hayMax - range.hayMin + 1)) +
+    range.hayMin;
+  state.gameplay.inventory.bugday += wheat;
+  state.gameplay.inventory.saman += hay;
+  farm.plantedArea = 0;
+  farm.plantedAt = null;
+  farm.harvestReadyAt = null;
+  renderInventory();
+  renderFieldState();
+  showDialog(
+    `${wheat.toLocaleString("tr-TR")} buğday ve ${hay.toLocaleString(
+      "tr-TR"
+    )} saman toplandı.`,
+    "success"
+  );
+  saveState();
 }
 
 function renderInventory() {
@@ -454,11 +759,9 @@ function renderCurrencies() {
             <p class="currency-balance">
               ${currency.name} Bakiyeniz: <strong>${holdings.toLocaleString("tr-TR")}</strong> Adet
             </p>
-            <p class="currency-volume">
-              Hacim: ${currency.volume.toLocaleString("tr-TR")} / ${(
-                currency.volume * 5
-              ).toLocaleString("tr-TR")}
-            </p>
+            <p class="currency-volume">Hacim: ${CURRENCY_CAP.toLocaleString(
+              "tr-TR"
+            )} / ${holdings.toLocaleString("tr-TR")}</p>
           </div>
         </article>
       `;
@@ -492,6 +795,8 @@ function formatItem(key) {
     kagit: "Kağıt",
     tohum: "Premium Tohum",
     makine: "Hasat Makinesi",
+    bugday: "Buğday",
+    saman: "Saman",
   };
   return mapping[key] || key || "Eşya";
 }
@@ -546,6 +851,7 @@ function updateClock() {
     second: "2-digit",
   });
   renderFactories();
+  renderFieldState();
 }
 
 function tradingWindowOpen() {
@@ -574,6 +880,9 @@ function handleTrade(event) {
 
   const price = currency.currentPrice * qty;
   const holdings = state.gameplay.currencies[currencyId]?.holdings || 0;
+  if (action === "buy" && holdings + qty > CURRENCY_CAP) {
+    return showDialog("Bu döviz için hacim sınırına ulaşıldı.", "error");
+  }
 
   if (action === "buy") {
     if (state.gameplay.balances.cash < price) {
@@ -973,6 +1282,13 @@ function handleBankWork() {
   renderSummary();
 }
 
+function toggleVip() {
+  state.gameplay.vipActive = !state.gameplay.vipActive;
+  renderVip();
+  renderFarm();
+  saveState();
+}
+
 function handleChatSubmit(event) {
   event.preventDefault();
   if (!state.user) {
@@ -1082,6 +1398,29 @@ function attachEvents() {
   document.querySelectorAll(".action-card").forEach((card) =>
     card.addEventListener("click", () => togglePanel(card.dataset.panel))
   );
+
+  dom.farmNavButtons.forEach((btn) =>
+    btn.addEventListener("click", handleFarmNav)
+  );
+  dom.farmBackButtons.forEach((btn) =>
+    btn.addEventListener("click", handleFarmBack)
+  );
+  if (dom.plantOpen) dom.plantOpen.addEventListener("click", openPlantModal);
+  dom.plantCloseButtons.forEach((btn) =>
+    btn.addEventListener("click", closePlantModal)
+  );
+  if (dom.plantInput) dom.plantInput.addEventListener("input", updatePlantPreview);
+  if (dom.plantConfirm) dom.plantConfirm.addEventListener("click", handlePlantConfirm);
+  if (dom.expandOpen) dom.expandOpen.addEventListener("click", openExpandModal);
+  dom.expandCloseButtons.forEach((btn) =>
+    btn.addEventListener("click", closeExpandModal)
+  );
+  if (dom.expandConfirm) dom.expandConfirm.addEventListener("click", handleExpandConfirm);
+  if (dom.farmInfoButton)
+    dom.farmInfoButton.addEventListener("click", () =>
+      showDialog("Çiftlik bilgisi yakında eklenecek.", "info")
+    );
+  if (dom.vipToggle) dom.vipToggle.addEventListener("click", toggleVip);
 
   dom.currencyList.addEventListener("click", (event) => {
     const card = event.target.closest(".currency-card");
