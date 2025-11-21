@@ -70,7 +70,6 @@ const dom = {
   plantCloseButtons: document.querySelectorAll("[data-plant-close]"),
   expandCloseButtons: document.querySelectorAll("[data-expand-close]"),
 };
-};
 
 dom.factoryButtons = document.querySelectorAll("[data-factory]");
 
