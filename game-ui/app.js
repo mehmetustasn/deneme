@@ -89,6 +89,14 @@ const FARM_MAX_SIZE = 1000;
 const FARM_BASE_UPGRADE_COST = 100;
 const FARM_COOLDOWN = 6 * 60 * 60 * 1000;
 
+document.addEventListener("click", (event) => {
+  const targetButton = event.target.closest("button");
+  if (!targetButton) return;
+  targetButton.classList.remove("btn-flash");
+  void targetButton.offsetWidth;
+  targetButton.classList.add("btn-flash");
+});
+
 function normalizeUser(user = {}) {
   return { ...defaultUserShape, ...user };
 }
