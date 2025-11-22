@@ -39,20 +39,32 @@
 
     <div id="app" class="hidden">
       <header class="app-header">
-        <div class="profile-summary">
-          <div>
-            <h1>Ticarion 2D</h1>
-            <p id="player-level">Seviye 1</p>
+        <div class="game-bar">
+          <button id="nav-back" class="btn-ghost nav-back" aria-label="Geri dön" disabled>
+            ← Geri
+          </button>
+          <div class="game-brand">
+            <p class="eyebrow">Ticarion 2D</p>
+            <h1>Şehir &amp; Çiftlik</h1>
           </div>
-          <div class="profile-chip" id="profile-button">
-            <span id="player-name">Misafir</span>
-            <small>Profili Gör</small>
+          <div class="clock-pill">
+            <p>İstanbul</p>
+            <strong id="istanbul-clock">00:00:00</strong>
           </div>
         </div>
-        <div class="clock-pill">
-          <p>İstanbul</p>
-          <strong id="istanbul-clock">00:00:00</strong>
+
+        <div class="hero-profile" id="profile-button">
+          <div class="avatar" id="player-avatar">T</div>
+          <div class="hero-copy">
+            <p class="eyebrow">Profil</p>
+            <div class="hero-title">
+              <h2 id="player-name">Misafir</h2>
+              <span id="player-level" class="pill">Seviye 1</span>
+            </div>
+          </div>
+          <div class="hero-cta">Profili aç</div>
         </div>
+
         <div class="wallet-bar">
           <div class="wallet-labels">
             <span>Nakit Bakiyem</span>

@@ -5,6 +5,7 @@ const registerForm = document.getElementById("register-form");
 const loginForm = document.getElementById("login-form");
 const appRoot = document.getElementById("app");
 const profileButton = document.getElementById("profile-button");
+const navBackButton = document.getElementById("nav-back");
 const panels = document.querySelectorAll(".panel");
 const dialog = {
   root: document.getElementById("feedback-dialog"),
@@ -16,6 +17,7 @@ const dialog = {
 const dom = {
   playerName: document.getElementById("player-name"),
   playerLevel: document.getElementById("player-level"),
+  playerAvatar: document.getElementById("player-avatar"),
   cashBalance: document.getElementById("cash-balance"),
   clock: document.getElementById("istanbul-clock"),
   profileUsername: document.getElementById("profile-username"),
@@ -146,6 +148,8 @@ const state = {
 };
 
 let farmViewStack = ["home"];
+let navStack = [];
+let currentPanel = null;
 
 const inventoryVisuals = {
   demir: { icon: "⛓️", label: "Demir", accent: "iron" },
@@ -331,10 +335,24 @@ function hideDialog() {
   dialog.card.dataset.variant = "info";
 }
 
-function togglePanel(panelId, open = true) {
+function updateBackButton() {
+  if (!navBackButton) return;
+  const hasHistory = navStack.length > 0 || !!currentPanel;
+  navBackButton.disabled = !hasHistory;
+}
+
+function togglePanel(panelId, open = true, options = {}) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
+  const pushHistory = options.pushHistory ?? true;
   if (open) {
+    if (!currentPanel) {
+      navStack = [];
+    }
+    if (currentPanel && pushHistory) {
+      navStack.push(currentPanel);
+    }
+    closePanels(false);
     panel.classList.remove("hidden");
     if (panelId === "chat-panel") {
       renderChat();
@@ -344,19 +362,44 @@ function togglePanel(panelId, open = true) {
       showFarmView("home");
       renderFarm();
     }
+    currentPanel = panelId;
   } else {
     panel.classList.add("hidden");
+    currentPanel = null;
   }
+  updateBackButton();
 }
 
-function closePanels() {
+function closePanels(resetHistory = true) {
   panels.forEach((panel) => panel.classList.add("hidden"));
+  currentPanel = null;
+  if (resetHistory) {
+    navStack = [];
+  }
+  updateBackButton();
+}
+
+function navigateBack() {
+  if (!currentPanel && !navStack.length) return;
+  const previous = navStack.pop();
+  closePanels(false);
+  if (previous) {
+    togglePanel(previous, true, { pushHistory: false });
+  } else {
+    currentPanel = null;
+    updateBackButton();
+  }
 }
 
 function renderSummary() {
   if (!state.user) return;
   dom.playerName.textContent = state.user.username;
   dom.playerLevel.textContent = `Seviye ${state.user.level ?? 1}`;
+  const avatarLetter = (state.user.username || "T").charAt(0).toUpperCase();
+  if (dom.playerAvatar) {
+    dom.playerAvatar.textContent = avatarLetter;
+    dom.playerAvatar.setAttribute("aria-label", `Profil ${avatarLetter}`);
+  }
   dom.cashBalance.textContent = formatCurrency(state.gameplay.balances.cash);
   state.gameplay.balances.iron =
     state.gameplay.inventory?.demir ?? state.gameplay.balances.iron ?? 0;
@@ -1381,6 +1424,10 @@ function attachEvents() {
     togglePanel("profile-panel");
   });
 
+  if (navBackButton) {
+    navBackButton.addEventListener("click", navigateBack);
+  }
+
   dom.profileForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.target));
@@ -1479,6 +1526,9 @@ function finalizeLogin() {
   normalizeMarketListings();
   authOverlay.classList.add("hidden");
   appRoot.classList.remove("hidden");
+  navStack = [];
+  currentPanel = null;
+  updateBackButton();
   renderSummary();
   renderInventory();
   renderMarket();
@@ -1517,6 +1567,7 @@ function init() {
   if (state.users.length) {
     authTabs[1].click();
   }
+  updateBackButton();
 }
 
 init();
