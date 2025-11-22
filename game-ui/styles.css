@@ -502,6 +502,12 @@ button:disabled {
   font-weight: 700;
 }
 
+.currency-art img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
 .currency-meta {
   flex: 1;
 }

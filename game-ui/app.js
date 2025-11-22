@@ -112,6 +112,7 @@ const defaultCurrencies = [
     previousClose: 200,
     volume: 100000,
     icon: "Ⓣ",
+    image: "assets/tcoin.svg",
     accent: "tcoin",
   },
   {
@@ -736,13 +737,17 @@ function renderCurrencies() {
       const change = calculateChange(currency);
       const changeClass = change >= 0 ? "positive" : "negative";
       const changePrefix = change >= 0 ? "+" : "";
+      const art = currency.image
+        ? `<img src="${currency.image}" alt="${currency.name}" />`
+        : `<span>${currency.icon || "🪙"}</span>`;
+
       return `
         <article class="currency-card" data-currency="${currency.id}" ${
           index === 0 ? "data-selected" : ""
         }>
           <header class="currency-top">
             <div class="currency-art accent-${currency.accent || currency.id}">
-              <span>${currency.icon || "🪙"}</span>
+              ${art}
             </div>
             <div class="currency-meta">
               <p class="currency-name">${currency.name}</p>
