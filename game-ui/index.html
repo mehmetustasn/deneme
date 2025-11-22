@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ticarion 2D - İlk Sürüm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="auth-overlay" class="overlay">
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-target="register-form">
+            Kayıt Ol
+          </button>
+          <button class="auth-tab" data-target="login-form">Giriş Yap</button>
+        </div>
+        <form id="register-form" class="auth-form active">
+          <h2>Yeni Hesap Oluştur</h2>
+          <label>Kullanıcı Adı<input name="username" required /></label>
+          <label>Şifre<input name="password" type="password" required /></label>
+          <label>Telefon Numarası<input name="phone" type="tel" required /></label>
+          <button type="submit" class="btn-positive">Kaydı Tamamla</button>
+        </form>
+        <form id="login-form" class="auth-form">
+          <h2>Hesabına Dön</h2>
+          <label>Kullanıcı Adı<input name="username" required /></label>
+          <label>Şifre<input name="password" type="password" required /></label>
+          <button type="submit" class="btn-positive">Giriş Yap</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <header class="app-header">
+        <div class="game-bar">
+          <button id="nav-back" class="btn-ghost nav-back" aria-label="Geri dön" disabled>
+            ← Geri
+          </button>
+          <div class="game-brand">
+            <p class="eyebrow">Ticarion 2D</p>
+            <h1>Şehir &amp; Çiftlik</h1>
+          </div>
+          <div class="clock-pill">
+            <p>İstanbul</p>
+            <strong id="istanbul-clock">00:00:00</strong>
+          </div>
+        </div>
+
+        <div class="hero-profile" id="profile-button">
+          <div class="avatar" id="player-avatar">T</div>
+          <div class="hero-copy">
+            <p class="eyebrow">Profil</p>
+            <div class="hero-title">
+              <h2 id="player-name">Misafir</h2>
+              <span id="player-level" class="pill">Seviye 1</span>
+            </div>
+          </div>
+          <div class="hero-cta">Profili aç</div>
+        </div>
+
+        <div class="wallet-bar">
+          <div class="wallet-labels">
+            <span>Nakit Bakiyem</span>
+            <div class="wallet-actions">
+              <strong id="cash-balance">₺0</strong>
+              <button id="vip-toggle" class="btn-positive btn-pill">Vip ol</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="quick-actions">
+          <article class="action-card" data-panel="bank-panel">
+            <span>🏦</span>
+            <h3>Banka</h3>
+            <p>Varlıklarını yönet.</p>
+          </article>
+          <article class="action-card" data-panel="farm-panel">
+            <span>🚜</span>
+            <h3>Çiftliğim</h3>
+            <p>Ekinlerin ve ilanların merkezi.</p>
+          </article>
+          <article class="action-card" data-panel="market-panel">
+            <span>🛒</span>
+            <h3>Pazar Yeri</h3>
+            <p>Online oyuncularla ticaret.</p>
+          </article>
+          <article class="action-card" data-panel="factory-panel">
+            <span>🏭</span>
+            <h3>Fabrika</h3>
+            <p>Demir üretimi yap.</p>
+          </article>
+          <article class="action-card" data-panel="ads-panel">
+            <span>📢</span>
+            <h3>Çiftlik İlanları</h3>
+            <p>Satılık ve kiralık fırsatlar.</p>
+          </article>
+          <article class="action-card" data-panel="inventory-panel">
+            <span>🎒</span>
+            <h3>Envanter</h3>
+            <p>Eşyalarını düzenle.</p>
+          </article>
+          <article class="action-card" data-panel="chat-panel">
+            <span>💬</span>
+            <h3>Sohbet</h3>
+            <p>Online oyuncularla konuş.</p>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <section id="profile-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Profilim</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="profile-info">
+          <div class="identity-card">
+            <p><strong>Kullanıcı Adı</strong></p>
+            <h3 id="profile-username">-</h3>
+          </div>
+          <div class="identity-card">
+            <p><strong>Seviye</strong></p>
+            <h3 id="profile-level">-</h3>
+          </div>
+          <div class="identity-card">
+            <p><strong>TC Kimlik</strong></p>
+            <h3 id="profile-identity">-</h3>
+          </div>
+          <div class="motto-card">
+            <p>Motto</p>
+            <blockquote id="profile-motto">Henüz motto eklenmedi.</blockquote>
+          </div>
+        </div>
+        <form id="profile-form">
+          <label>Telefon Numarası<input name="phone" type="tel" required /></label>
+          <label>Kurtarma E-postası<input name="email" type="email" placeholder="ornek@mail.com" /></label>
+          <label>Motto
+            <textarea name="motto" rows="2" maxlength="120" placeholder="Kendine özel bir mesaj yaz..."></textarea>
+          </label>
+          <button type="submit" class="btn-positive">Profili Güncelle</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="bank-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Neo Banka</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body bank-grid">
+        <aside class="bank-menu">
+          <button class="bank-tab active" data-target="currency-view">
+            <span class="bank-icon">💱</span>
+            Döviz
+          </button>
+          <button class="bank-tab" data-target="transfer-view">
+            <span class="bank-icon">💸</span>
+            Havale / EFT
+          </button>
+          <button class="bank-tab" data-target="earn-view">
+            <span class="bank-icon">💼</span>
+            Para Kazan
+          </button>
+          <button class="bank-tab" data-target="history-view">
+            <span class="bank-icon">📜</span>
+            Hesap Hareketleri
+          </button>
+          <button class="bank-tab" data-target="credit-view">
+            <span class="bank-icon">🏦</span>
+            Kredi Çek
+          </button>
+          <button class="bank-tab" data-target="credit-pay-view">
+            <span class="bank-icon">💳</span>
+            Kredi Öde
+          </button>
+          <button class="bank-tab" data-target="deposit-view">
+            <span class="bank-icon">⏳</span>
+            Vadeli Hesap
+          </button>
+        </aside>
+        <div class="bank-content">
+          <div id="currency-view" class="bank-view active">
+            <div class="currency-banner">
+              Döviz işlemleri 09:00'da açılır 21:00'da kapanır.
+            </div>
+            <div class="currency-list" id="currency-list"></div>
+            <form id="currency-form" class="trade-form">
+              <label>Adet Giriniz<input name="amount" type="number" min="1" required /></label>
+              <label>İşlem Seçiniz
+                <select name="action" required>
+                  <option value="">Seçiniz</option>
+                  <option value="buy">Alış Yap</option>
+                  <option value="sell">Satış Yap</option>
+                </select>
+              </label>
+              <div class="trade-summary">
+                <p>Seçili Döviz: <strong id="selected-currency">-</strong></p>
+                <p>Birim Fiyat: <strong id="selected-price">₺0</strong></p>
+              </div>
+              <div class="trade-actions">
+                <button type="submit" class="btn-positive">İşlem Yap</button>
+                <button type="button" id="receipt-button" class="btn-ghost">Dekont</button>
+              </div>
+            </form>
+          </div>
+          <div id="transfer-view" class="bank-view">
+            <h3>Havale / EFT</h3>
+            <form id="transfer-form">
+              <label>Alıcı TC<input name="identity" required maxlength="11" minlength="11" /></label>
+              <label>Kullanıcı Adı<input name="username" required /></label>
+              <label>Tutar (₺)<input name="amount" type="number" min="1" required /></label>
+              <button type="submit" class="btn-positive">Gönder</button>
+            </form>
+          </div>
+          <div id="earn-view" class="bank-view">
+            <h3>Para Kazan</h3>
+            <p>Banka gişesinde vardiya alarak kasana 100.000 TL ekle.</p>
+            <button id="bank-work-button" class="btn-positive">Bankada Çalış</button>
+          </div>
+          <div id="history-view" class="bank-view">
+            <h3>Hesap Hareketleri</h3>
+            <ul id="account-history" class="history-list"></ul>
+          </div>
+          <div id="credit-view" class="bank-view">
+            <h3>Kredi Çek</h3>
+            <p>Bu ekran ilerleyen sürümlerde aktif olacak.</p>
+          </div>
+          <div id="credit-pay-view" class="bank-view">
+            <h3>Kredi Öde</h3>
+            <p>Bu ekran ilerleyen sürümlerde aktif olacak.</p>
+          </div>
+          <div id="deposit-view" class="bank-view">
+            <h3>Vadeli Hesap</h3>
+            <p>Yüksek getirili mevduatlar yakında.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="inventory-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Envanter</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="inventory-bar">ENVANTERİM</div>
+        <div id="inventory-list" class="inventory-grid"></div>
+      </div>
+    </section>
+
+    <section id="market-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Pazar Yeri</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="market-filters">
+          <input type="search" id="market-search" placeholder="Eşya ara..." />
+          <select id="market-filter">
+            <option value="all">Tümü</option>
+            <option value="demir">Demir</option>
+            <option value="kagit">Kağıt</option>
+            <option value="bugday">Buğday</option>
+            <option value="saman">Saman</option>
+          </select>
+        </div>
+        <div id="market-list" class="market-grid"></div>
+      </div>
+    </section>
+
+    <section id="factory-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Fabrikalar</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body factory-grid">
+        <article class="factory-card">
+          <div class="factory-media factory-media--iron"></div>
+          <div class="factory-info">
+            <h3>Demir Fabrikası</h3>
+            <p>Demir fabrikasında çalışarak 2.000-5.000 adet demir üretebilirsin.</p>
+            <button class="btn-positive" data-factory="iron">Çalış</button>
+          </div>
+        </article>
+        <article class="factory-card">
+          <div class="factory-media factory-media--paper"></div>
+          <div class="factory-info">
+            <h3>Kağıt Fabrikası</h3>
+            <p>10 saniyede bir vardiya alabilir ve 2.000-5.000 adet kağıt stoklayabilirsin.</p>
+            <button class="btn-positive" data-factory="paper">Çalış</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="farm-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Çiftliğim</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body farm-shell">
+        <div class="farm-view active" data-farm-view="home">
+          <div class="farm-hero">
+            <div class="farm-hero-media"></div>
+            <button class="btn-info" id="farm-info-button">Bilgi</button>
+          </div>
+          <div class="farm-nav-grid">
+            <button class="farm-pill" data-farm-nav="field">Tarlam</button>
+            <button class="farm-pill" data-farm-nav="farmers">Çiftçilerim</button>
+            <button class="farm-pill" data-farm-nav="cows">İneklerim</button>
+            <button class="farm-pill" data-farm-nav="sheep">Koyunlarım</button>
+          </div>
+        </div>
+
+        <div class="farm-view" data-farm-view="field">
+          <div class="farm-topbar">
+            <button class="btn-negative" data-farm-back>Geri Dön</button>
+          </div>
+          <div class="farm-hero farm-hero--field" id="field-hero"></div>
+          <p class="farm-available" id="field-available">Ekilebilir 0 m2 tarlanız mevcut</p>
+          <div class="field-actions">
+            <button class="btn-positive" id="plant-open">Tarlayı Ek</button>
+            <button class="btn-info" id="expand-open">Tarlayı Büyüt</button>
+          </div>
+          <div id="field-state" class="field-state"></div>
+          <div class="field-info-card">
+            <h4>Tarla Ekimi Hakkında</h4>
+            <p class="vip-status" id="vip-status">2x VIP Pasif</p>
+            <p class="farmer-bonus" id="farmer-bonus">Çiftçi bonusunuz: %0</p>
+            <p class="muted">Tarlanızı yalnızca 6 saatte bir ekebilirsiniz.</p>
+          </div>
+        </div>
+
+        <div class="farm-view" data-farm-view="farmers">
+          <div class="farm-topbar">
+            <button class="btn-negative" data-farm-back>Geri Dön</button>
+          </div>
+          <div class="farm-placeholder">Çiftçi yönetimi yakında eklenecek.</div>
+        </div>
+
+        <div class="farm-view" data-farm-view="cows">
+          <div class="farm-topbar">
+            <button class="btn-negative" data-farm-back>Geri Dön</button>
+          </div>
+          <div class="farm-placeholder">İnekler yakında burada listelenecek.</div>
+        </div>
+
+        <div class="farm-view" data-farm-view="sheep">
+          <div class="farm-topbar">
+            <button class="btn-negative" data-farm-back>Geri Dön</button>
+          </div>
+          <div class="farm-placeholder">Koyun sürünüz yakında burada.</div>
+        </div>
+      </div>
+    </section>
+
+    <div id="plant-modal" class="farm-modal hidden">
+      <div class="farm-modal-card">
+        <div class="farm-modal-header">
+          <h4>Bilgilendirme</h4>
+          <button class="close-panel btn-negative" data-plant-close>&times;</button>
+        </div>
+        <p class="muted">Eklicek Tarlanızın M2 Giriniz</p>
+        <input type="number" id="plant-input" inputmode="numeric" min="1" />
+        <p class="plant-cost" id="plant-cost">Ekilecek M2 İçin Gerekli TCOİN: 0</p>
+        <p class="yield-info" id="yield-info"></p>
+        <div class="modal-actions">
+          <button class="btn-positive" id="plant-confirm">Araziyi Ek</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="expand-modal" class="farm-modal hidden">
+      <div class="farm-modal-card">
+        <div class="farm-modal-header">
+          <h4>Yükseltme</h4>
+          <button class="close-panel btn-negative" data-expand-close>&times;</button>
+        </div>
+        <p class="muted" id="expand-current">Mevcut tarla kapasiteniz: 0 m2</p>
+        <p class="muted">Tarlayı 10 M2 Yükseltmek İster Misiniz</p>
+        <p class="plant-cost" id="expand-cost">Yükseltmek İçin Gerekli TCoin: 0</p>
+        <div class="modal-actions">
+          <button class="btn-positive" id="expand-confirm">Yükselt</button>
+          <button class="btn-ghost" data-expand-close>Kapat</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="ads-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Çiftlik İlanları</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <p>Oyuncuların oluşturduğu ilanlar burada listelenecek.</p>
+      </div>
+    </section>
+
+    <section id="receipt-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Dekontlar</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <ul id="receipt-list" class="receipt-list"></ul>
+      </div>
+    </section>
+
+    <section id="chat-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Canlı Sohbet</h2>
+        <div class="panel-actions">
+          <button class="home-button btn-ghost" data-close>Ana Ekran</button>
+          <button class="close-panel btn-negative" data-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body chat-panel-body">
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="chat-form" class="chat-form">
+          <textarea
+            id="chat-input"
+            name="message"
+            rows="2"
+            placeholder="Mesajını yaz..."
+            required
+          ></textarea>
+          <button type="submit" class="btn-positive">Gönder</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="peek-panel" class="panel hidden player-peek">
+      <div class="panel-header">
+        <h2>Oyuncu Profili</h2>
+        <div class="panel-actions">
+          <button class="close-panel btn-negative" data-peek-close>&times;</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="peek-card">
+          <p class="peek-username" id="peek-username">-</p>
+          <p class="peek-level" id="peek-level">Seviye -</p>
+          <p class="peek-identity" id="peek-identity">TC -</p>
+          <p class="peek-motto" id="peek-motto">Motto paylaşılmamış.</p>
+        </div>
+      </div>
+    </section>
+
+    <div
+      id="feedback-dialog"
+      class="dialog hidden"
+      role="alertdialog"
+      aria-live="assertive"
+      aria-modal="true"
+    >
+      <div class="dialog-card" data-variant="info">
+        <p id="dialog-message">Bilgilendirme mesajı burada görünecek.</p>
+        <button id="dialog-close" class="btn-positive">Tamam</button>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
