@@ -316,6 +316,7 @@ function ensureGameplayShape(payload = {}) {
   const merged = {
     ...base,
     ...payload,
+    vipActive: Boolean(payload.vipActive),
     balances: { ...base.balances, ...(payload.balances || {}) },
     inventory: { ...base.inventory, ...(payload.inventory || {}) },
     listings: payload.listings || [],
@@ -324,7 +325,7 @@ function ensureGameplayShape(payload = {}) {
     factoryCooldowns: payload.factoryCooldowns || {},
     farm: { ...base.farm, ...(payload.farm || {}) },
     cows: payload.cows || [],
-    cowPurchaseAt: payload.cowPurchaseAt || null,
+    cowPurchaseAt: payload.cowPurchaseAt ? Number(payload.cowPurchaseAt) : null,
   };
 
   merged.currencies = defaultCurrencies.reduce((acc, currency) => {
@@ -1697,6 +1698,7 @@ function handleBankWork() {
 function toggleVip() {
   state.gameplay.vipActive = !state.gameplay.vipActive;
   renderVip();
+  renderCows();
   renderFarm();
   saveState();
 }
