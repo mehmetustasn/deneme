@@ -1,0 +1,20 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tcoin">
+  <defs>
+    <linearGradient id="rim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd877" />
+      <stop offset="100%" stop-color="#f6a101" />
+    </linearGradient>
+    <linearGradient id="face" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffefb0" />
+      <stop offset="100%" stop-color="#f0aa2e" />
+    </linearGradient>
+    <linearGradient id="shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#000" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#000" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="244" fill="url(#rim)" />
+  <circle cx="256" cy="256" r="205" fill="url(#face)" stroke="#fdf3c4" stroke-width="10" />
+  <circle cx="256" cy="256" r="205" fill="url(#shadow)" opacity="0.1" />
+  <path d="M176 160c0-8.837 7.163-16 16-16h128c8.837 0 16 7.163 16 16v36c0 8.837-7.163 16-16 16h-48v144c0 8.837-7.163 16-16 16h-20c-8.837 0-16-7.163-16-16V212h-28c-8.837 0-16-7.163-16-16V160z" fill="#f7f0dc" stroke="#d58200" stroke-width="14" stroke-linejoin="round" />
+</svg>
