@@ -719,6 +719,14 @@ function showFarmView(target) {
   });
 }
 
+function openCowShop() {
+  // Always render the shop before showing it so the user sees current cooldowns
+  renderCowShop();
+  // Keep navigation history consistent for the farm back button
+  farmViewStack.push("cow-shop");
+  showFarmView("cow-shop");
+}
+
 function handleFarmNav(event) {
   const target = event.target.closest("[data-farm-nav]");
   if (!target) return;
@@ -1826,12 +1834,7 @@ function attachEvents() {
   if (dom.plantInput) dom.plantInput.addEventListener("input", updatePlantPreview);
   if (dom.plantConfirm) dom.plantConfirm.addEventListener("click", handlePlantConfirm);
   if (dom.cowBulkButton) dom.cowBulkButton.addEventListener("click", handleBulkMilk);
-  if (dom.cowShopButton)
-    dom.cowShopButton.addEventListener("click", () => {
-      farmViewStack.push("cow-shop");
-      showFarmView("cow-shop");
-      renderCowShop();
-    });
+  if (dom.cowShopButton) dom.cowShopButton.addEventListener("click", openCowShop);
   if (dom.cowBuyGem)
     dom.cowBuyGem.addEventListener("click", () => handleCowPurchase(true));
   if (dom.cowBuyTcoin)
