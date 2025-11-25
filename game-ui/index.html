@@ -322,19 +322,31 @@
           <button class="close-panel btn-negative" data-close>&times;</button>
         </div>
       </div>
-      <div class="panel-body farm-shell">
-        <div class="farm-view active" data-farm-view="home">
-          <div class="farm-hero">
-            <div class="farm-hero-media"></div>
-            <button class="btn-info" id="farm-info-button">Bilgi</button>
+        <div class="panel-body farm-shell">
+          <div class="farm-view active" data-farm-view="home">
+            <div class="farm-hero">
+              <div class="farm-hero-media"></div>
+              <button class="btn-info" id="farm-info-button">Bilgi</button>
+            </div>
+            <div class="farm-menu" id="farm-menu">
+              <button class="farm-row" data-farm-nav="field">
+                <span class="farm-row-label">Tarlam</span>
+                <span class="farm-row-art">🌾</span>
+              </button>
+              <button class="farm-row" data-farm-nav="farmers">
+                <span class="farm-row-label">Çiftçilerim</span>
+                <span class="farm-row-art">👨‍🌾</span>
+              </button>
+              <button class="farm-row" data-farm-nav="cows">
+                <span class="farm-row-label">İneklerim</span>
+                <span class="farm-row-art">🐄</span>
+              </button>
+              <button class="farm-row" data-farm-nav="sheep">
+                <span class="farm-row-label">Koyunlarım</span>
+                <span class="farm-row-art">🐑</span>
+              </button>
+            </div>
           </div>
-          <div class="farm-nav-grid">
-            <button class="farm-pill" data-farm-nav="field">Tarlam</button>
-            <button class="farm-pill" data-farm-nav="farmers">Çiftçilerim</button>
-            <button class="farm-pill" data-farm-nav="cows">İneklerim</button>
-            <button class="farm-pill" data-farm-nav="sheep">Koyunlarım</button>
-          </div>
-        </div>
 
         <div class="farm-view" data-farm-view="field">
           <div class="farm-topbar">
@@ -366,7 +378,29 @@
           <div class="farm-topbar">
             <button class="btn-negative" data-farm-back>Geri Dön</button>
           </div>
-          <div class="farm-placeholder">İnekler yakında burada listelenecek.</div>
+          <div class="cow-overview">
+            <div>
+              <p id="cow-capacity">Tarla Kapasitem: 0 M2 / 0 M2</p>
+              <p id="cow-count">Mevcut İnek Sayısı: 0</p>
+            </div>
+            <div class="vip-chip" id="cow-vip">Vip 2x Tahsilat Pasif</div>
+          </div>
+          <div class="cow-commission">
+            <p id="cow-commission">Toplu Sağma İşlemi Yaparak %10 Komisyon Kesilir.</p>
+            <div class="cow-bulk" id="cow-bulk-block">
+              <div class="bulk-head">Otlanmayan Tüm İnekleri Sağ</div>
+              <input
+                type="number"
+                inputmode="numeric"
+                id="cow-challenge"
+                placeholder="2+2 Kaç Eder?"
+              />
+              <button class="btn-positive" id="bulk-milk">Tüm İnekleri Sağ</button>
+              <p class="negative hidden" id="cow-all-grazing">Tüm İnekler Otlanıyor</p>
+            </div>
+          </div>
+          <button class="btn-info" id="cow-buy-link" data-farm-nav="cow-shop">İnek Satın Al</button>
+          <div class="cow-grid" id="cow-list"></div>
         </div>
 
         <div class="farm-view" data-farm-view="sheep">
@@ -374,6 +408,18 @@
             <button class="btn-negative" data-farm-back>Geri Dön</button>
           </div>
           <div class="farm-placeholder">Koyun sürünüz yakında burada.</div>
+        </div>
+
+        <div class="farm-view" data-farm-view="cow-shop">
+          <div class="farm-topbar">
+            <button class="btn-negative" data-farm-back>Geri Dön</button>
+          </div>
+          <div class="cow-shop-hero"></div>
+          <h3 class="cow-shop-title">İNEK SATIN AL</h3>
+          <button class="btn-positive" id="cow-shop-button">İnek Satın Al</button>
+          <p class="negative hidden" id="cow-shop-countdown"></p>
+          <h4 class="cow-contents-title">İÇİNDEKİLER</h4>
+          <div class="cow-type-list" id="cow-shop-list"></div>
         </div>
       </div>
     </section>
@@ -406,6 +452,26 @@
         <div class="modal-actions">
           <button class="btn-positive" id="expand-confirm">Yükselt</button>
           <button class="btn-ghost" data-expand-close>Kapat</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="cow-purchase-modal" class="farm-modal hidden">
+      <div class="farm-modal-card cow-modal-card">
+        <div class="farm-modal-header">
+          <h4>Bilgilendirme</h4>
+          <button class="close-panel btn-negative" data-cow-close>&times;</button>
+        </div>
+        <p class="muted">Vip iseniz 30 dakika, vip değilseniz 60 dakikada bir yeni inek satın alabilirsiniz.</p>
+        <p class="muted">Elmas + Tcoinli alınan ineklerde Montbeliard çıkma şansı %50 daha fazladır.</p>
+        <div class="cow-purchase-actions">
+          <button class="btn-info" data-cow-purchase="premium">
+            1.000 Tcoin + 10 ◇ İle al
+          </button>
+          <button class="btn-positive" data-cow-purchase="standard">1.000 Tcoin İle Al</button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" data-cow-close>Kapat</button>
         </div>
       </div>
     </div>

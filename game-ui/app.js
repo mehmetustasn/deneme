@@ -69,6 +69,23 @@ const dom = {
   farmInfoButton: document.getElementById("farm-info-button"),
   plantCloseButtons: document.querySelectorAll("[data-plant-close]"),
   expandCloseButtons: document.querySelectorAll("[data-expand-close]"),
+  farmMenu: document.getElementById("farm-menu"),
+  cowCapacity: document.getElementById("cow-capacity"),
+  cowCount: document.getElementById("cow-count"),
+  cowVip: document.getElementById("cow-vip"),
+  cowCommission: document.getElementById("cow-commission"),
+  cowChallengeInput: document.getElementById("cow-challenge"),
+  cowAllGrazing: document.getElementById("cow-all-grazing"),
+  bulkMilkButton: document.getElementById("bulk-milk"),
+  cowList: document.getElementById("cow-list"),
+  cowBuyLink: document.getElementById("cow-buy-link"),
+  cowShopCountdown: document.getElementById("cow-shop-countdown"),
+  cowShopButton: document.getElementById("cow-shop-button"),
+  cowShopList: document.getElementById("cow-shop-list"),
+  cowPurchaseModal: document.getElementById("cow-purchase-modal"),
+  cowModalClose: document.querySelectorAll("[data-cow-close]"),
+  cowModalTrigger: document.getElementById("cow-modal-trigger"),
+  cowModalActions: document.querySelectorAll("[data-cow-purchase]"),
 };
 
 dom.factoryButtons = document.querySelectorAll("[data-factory]");
@@ -146,13 +163,54 @@ const state = {
 };
 
 let farmViewStack = ["home"];
+let cowChallenge = null;
 
 const inventoryVisuals = {
   demir: { icon: "⛓️", label: "Demir", accent: "iron" },
   kagit: { icon: "📄", label: "Kağıt", accent: "paper" },
   bugday: { icon: "🌾", label: "Buğday", accent: "wheat" },
   saman: { icon: "🟫", label: "Saman", accent: "hay" },
+  sut: { icon: "🥛", label: "Süt", accent: "milk" },
 };
+
+const cowTypes = [
+  {
+    id: "montofon",
+    name: "Montofon Standart",
+    weight: 80,
+    boostedWeight: 80,
+    min: 5000,
+    max: 10000,
+    art: "🐮",
+  },
+  {
+    id: "alaca",
+    name: "Alaca İyi",
+    weight: 60,
+    boostedWeight: 60,
+    min: 7500,
+    max: 15000,
+    art: "🐄",
+  },
+  {
+    id: "hereford",
+    name: "Hereford Nadir",
+    weight: 40,
+    boostedWeight: 40,
+    min: 10000,
+    max: 20000,
+    art: "🐂",
+  },
+  {
+    id: "montbeliard",
+    name: "Montbeliard Ender",
+    weight: 20,
+    boostedWeight: 50,
+    min: 15000,
+    max: 30000,
+    art: "🦬",
+  },
+];
 
 function loadUsers() {
   try {
@@ -197,6 +255,7 @@ function defaultGameplay() {
     balances: {
       cash: 150000,
       iron: 0,
+      diamonds: 20,
     },
     vipActive: false,
     farmerBonus: 0,
@@ -209,11 +268,14 @@ function defaultGameplay() {
       kagit: 0,
       bugday: 0,
       saman: 0,
+      sut: 0,
     },
     listings: [],
     receipts: [],
     transactions: [],
     factoryCooldowns: {},
+    cows: [],
+    nextCowPurchaseAt: 0,
     farm: {
       size: FARM_BASE_SIZE,
       upgradeLevel: 0,
@@ -263,6 +325,8 @@ function ensureGameplayShape(payload = {}) {
     receipts: payload.receipts || [],
     transactions: payload.transactions || [],
     factoryCooldowns: payload.factoryCooldowns || {},
+    cows: payload.cows || [],
+    nextCowPurchaseAt: payload.nextCowPurchaseAt || 0,
     farm: { ...base.farm, ...(payload.farm || {}) },
   };
 
@@ -409,7 +473,8 @@ function renderFarm() {
   if (!dom.farmViews || !dom.farmViews.length) return;
   const farm = state.gameplay.farm || defaultGameplay().farm;
   if (dom.farmAvailable) {
-    dom.farmAvailable.textContent = `Ekilebilir ${farm.size.toLocaleString(
+    const available = Math.max(0, farm.size - getCowAreaUsage());
+    dom.farmAvailable.textContent = `Ekilebilir ${available.toLocaleString(
       "tr-TR"
     )} m2 tarlanız mevcut`;
   }
@@ -425,6 +490,8 @@ function renderFarm() {
     dom.farmerBonus.textContent = `Çiftçi bonusunuz: %${bonus}`;
   }
   renderFieldState();
+  renderCows();
+  renderCowShop();
 }
 
 function renderFieldState() {
@@ -474,6 +541,366 @@ function renderFieldState() {
   }
 }
 
+function getCowDefinition(type) {
+  return cowTypes.find((entry) => entry.id === type);
+}
+
+function getCowAreaUsage() {
+  return (state.gameplay.cows || []).length * 3;
+}
+
+function getTotalUsedArea() {
+  const farm = state.gameplay.farm || defaultGameplay().farm;
+  return (farm.plantedArea || 0) + getCowAreaUsage();
+}
+
+function getCowRange(cow) {
+  const def = getCowDefinition(cow.type) || { min: 0, max: 0 };
+  const multiplier = state.gameplay.vipActive ? 2 : 1;
+  return {
+    min: def.min * multiplier,
+    max: def.max * multiplier,
+  };
+}
+
+function getCommissionRange() {
+  const totals = (state.gameplay.cows || [])
+    .filter((cow) => isCowMilkable(cow))
+    .reduce(
+    (acc, cow) => {
+      const range = getCowRange(cow);
+      acc.min += range.min;
+      acc.max += range.max;
+      return acc;
+    },
+    { min: 0, max: 0 }
+  );
+  return {
+    min: Math.floor(totals.min * 0.9),
+    max: Math.floor(totals.max * 0.9),
+  };
+}
+
+function cleanupCows() {
+  const now = Date.now();
+  state.gameplay.cows = (state.gameplay.cows || []).filter(
+    (cow) => !cow.expiresAt || cow.expiresAt > now
+  );
+}
+
+function isCowMilkable(cow) {
+  if (!cow) return false;
+  const now = Date.now();
+  const grazingUntil = cow.grazesUntil || 0;
+  return now >= grazingUntil && !cow.listed;
+}
+
+function formatDateTime(timestamp) {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatCountdownLong(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor((totalSeconds / 60) % 60);
+  const hours = Math.floor((totalSeconds / 60 / 60) % 24);
+  const days = Math.floor(totalSeconds / 60 / 60 / 24);
+  const parts = [];
+  if (days > 0) parts.push(`${days}g`);
+  if (hours > 0 || days > 0) parts.push(`${String(hours).padStart(2, "0")}s`);
+  parts.push(`${String(minutes).padStart(2, "0")}d`);
+  parts.push(`${String(totalSeconds % 60).padStart(2, "0")}s`);
+  return parts.join(" ");
+}
+
+function formatClock(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(
+    seconds
+  ).padStart(2, "0")}`;
+}
+
+function generateCowQuestion() {
+  const a = Math.floor(Math.random() * 8) + 1;
+  const b = Math.floor(Math.random() * 8) + 1;
+  const isAdd = Math.random() > 0.4;
+  const question = isAdd
+    ? `${a}+${b} Kaç Eder?`
+    : `${Math.max(a, b)}-${Math.min(a, b)} Kaç Eder?`;
+  const answer = isAdd ? a + b : Math.abs(a - b);
+  cowChallenge = { question, answer };
+  if (dom.cowChallengeInput) {
+    dom.cowChallengeInput.value = "";
+    dom.cowChallengeInput.placeholder = question;
+  }
+}
+
+function renderCowCards(cows) {
+  const now = Date.now();
+  return cows
+    .map((cow) => {
+      const def = getCowDefinition(cow.type) || { name: "İnek", min: 0, max: 0, art: "🐄" };
+      const range = getCowRange(cow);
+      const grazingUntil = cow.grazesUntil || 0;
+      const isGrazing = grazingUntil > now;
+      const statusLabel = isGrazing ? "Otlanıyor" : "Sağıma Hazır";
+      const action = isGrazing
+        ? `<button class="btn-warn" disabled>${formatClock(grazingUntil - now)}</button>`
+        : `<button class="btn-positive" data-cow-milk="${cow.id}">İneği Sağ</button>`;
+      return `
+        <article class="cow-card">
+          <div class="cow-thumb">${def.art}</div>
+          <div class="cow-body">
+            <h4>${def.name}</h4>
+            <p class="muted">Üretim: ${range.min.toLocaleString("tr-TR")} / ${range.max.toLocaleString(
+        "tr-TR"
+      )} Litre Arası</p>
+            <p>Kalan Ömrü: <strong>${formatDateTime(cow.expiresAt)}</strong></p>
+            <p class="status ${isGrazing ? "grazing" : "ready"}">${statusLabel}</p>
+          </div>
+          <div class="cow-actions">${action}</div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderCows() {
+  if (!dom.cowList) return;
+  cleanupCows();
+  const farm = state.gameplay.farm || defaultGameplay().farm;
+  const cows = state.gameplay.cows || [];
+  const planted = farm.plantedArea || 0;
+  const used = getTotalUsedArea();
+  if (dom.cowCapacity) {
+    dom.cowCapacity.textContent = `Tarla Kapasitem: ${farm.size.toLocaleString(
+      "tr-TR"
+    )} M2 / ${used.toLocaleString("tr-TR")} M2`;
+  }
+  if (dom.cowCount) {
+    dom.cowCount.textContent = `Mevcut İnek Sayısı: ${cows.length}`;
+  }
+  if (dom.cowVip) {
+    dom.cowVip.textContent = state.gameplay.vipActive
+      ? "Vip 2X Tahsilat Aktif"
+      : "Vip 2x Tahsilat Pasif";
+    dom.cowVip.classList.toggle("positive", state.gameplay.vipActive);
+    dom.cowVip.classList.toggle("negative", !state.gameplay.vipActive);
+  }
+  if (dom.cowCommission) {
+    const range = getCommissionRange();
+    dom.cowCommission.innerHTML = `Toplu Sağma İşlemi Yaparak %10 Komisyon Kesilir. Komisyon farkı ile <strong>${range.min.toLocaleString(
+      "tr-TR"
+    )}</strong> ile <strong>${range.max.toLocaleString("tr-TR")}</strong> Litre Arası Süt Kazanırsınız.`;
+  }
+  const hasMilkable = cows.some((cow) => isCowMilkable(cow));
+  const showGrazing = !hasMilkable && cows.length > 0;
+  if (dom.bulkMilkButton) {
+    dom.bulkMilkButton.disabled = !hasMilkable;
+    dom.bulkMilkButton.classList.toggle("hidden", !hasMilkable);
+  }
+  if (dom.cowChallengeInput) {
+    dom.cowChallengeInput.disabled = !hasMilkable;
+    dom.cowChallengeInput.classList.toggle("hidden", !hasMilkable);
+  }
+  if (dom.cowAllGrazing) dom.cowAllGrazing.classList.toggle("hidden", !showGrazing);
+  if (!hasMilkable && cows.length > 0) {
+    if (dom.cowChallengeInput) dom.cowChallengeInput.value = "";
+  }
+  if (!cowChallenge) generateCowQuestion();
+  dom.cowList.innerHTML = cows.length
+    ? renderCowCards(cows)
+    : '<p class="empty-state">Henüz ineğin yok, satın alarak başla.</p>';
+}
+
+function renderCowShop() {
+  if (!dom.cowShopList) return;
+  const now = Date.now();
+  const remaining = (state.gameplay.nextCowPurchaseAt || 0) - now;
+  if (dom.cowShopButton) {
+    dom.cowShopButton.disabled = remaining > 0;
+    dom.cowShopButton.classList.toggle("hidden", remaining > 0);
+  }
+  if (dom.cowShopCountdown) {
+    if (remaining > 0) {
+      const vipText = state.gameplay.vipActive ? "30" : "60";
+      dom.cowShopCountdown.innerHTML = `Yeni inek almak için sürenin bitmesini beklemelisiniz! <span class="negative">${formatClock(
+        remaining
+      )}</span> (${vipText} dakikadan geriye sayıyor)`;
+      dom.cowShopCountdown.classList.remove("hidden");
+    } else {
+      dom.cowShopCountdown.classList.add("hidden");
+      dom.cowShopCountdown.textContent = "";
+    }
+  }
+
+  dom.cowShopList.innerHTML = cowTypes
+    .map((type) => {
+      const chance = `${type.weight}%`;
+      return `
+        <article class="cow-type-card">
+          <div class="cow-type-thumb">${type.art}</div>
+          <div class="cow-type-body">
+            <h4>${type.name} (${chance})</h4>
+            <p>Üretim: ${type.min.toLocaleString("tr-TR")} / ${type.max.toLocaleString(
+        "tr-TR"
+      )} Litre Arası Süt</p>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function openCowPurchaseModal() {
+  if (!dom.cowPurchaseModal) return;
+  const now = Date.now();
+  const remaining = (state.gameplay.nextCowPurchaseAt || 0) - now;
+  if (remaining > 0) {
+    return showDialog("Bekleme süresi dolmadan yeni inek alamazsın.", "error");
+  }
+  dom.cowPurchaseModal.classList.remove("hidden");
+}
+
+function closeCowPurchaseModal() {
+  if (dom.cowPurchaseModal) {
+    dom.cowPurchaseModal.classList.add("hidden");
+  }
+}
+
+function pickCow(variant = "standard") {
+  const weights = cowTypes.map((type) => {
+    if (variant === "premium" && type.id === "montbeliard") return type.boostedWeight;
+    return type.weight;
+  });
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < cowTypes.length; i += 1) {
+    roll -= weights[i];
+    if (roll <= 0) {
+      return cowTypes[i];
+    }
+  }
+  return cowTypes[cowTypes.length - 1];
+}
+
+function handleCowPurchase(event) {
+  const button = event.target.closest("[data-cow-purchase]");
+  if (!button) return;
+  const variant = button.dataset.cowPurchase;
+  const now = Date.now();
+  const remaining = (state.gameplay.nextCowPurchaseAt || 0) - now;
+  if (remaining > 0) {
+    return showDialog("Yeni inek için sürenin bitmesini beklemelisin.", "error");
+  }
+  const farm = state.gameplay.farm || defaultGameplay().farm;
+  const freeSpace = Math.max(0, farm.size - getTotalUsedArea());
+  if (freeSpace < 3) {
+    return showDialog("Tarlanızda yeterli yer yok.", "error");
+  }
+  const tcoinWallet = state.gameplay.currencies.tcoin?.holdings || 0;
+  const diamonds = state.gameplay.balances.diamonds || 0;
+  if (tcoinWallet < 1000) {
+    return showDialog("En az 1.000 TCoin gerekir.", "error");
+  }
+  if (variant === "premium" && diamonds < 10) {
+    return showDialog("Yeterli elmas yok.", "error");
+  }
+  state.gameplay.currencies.tcoin.holdings = tcoinWallet - 1000;
+  if (variant === "premium") {
+    state.gameplay.balances.diamonds = diamonds - 10;
+  }
+  const selection = pickCow(variant);
+  const cow = {
+    id: `cow-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+    type: selection.id,
+    createdAt: now,
+    expiresAt: now + 90 * 24 * 60 * 60 * 1000,
+    grazesUntil: 0,
+    listed: false,
+  };
+  state.gameplay.cows = [...(state.gameplay.cows || []), cow];
+  state.gameplay.nextCowPurchaseAt =
+    now + (state.gameplay.vipActive ? 30 : 60) * 60 * 1000;
+  closeCowPurchaseModal();
+  renderCurrencies();
+  renderCows();
+  renderCowShop();
+  renderInventory();
+  saveState();
+  showDialog(`Tebrikler! ${selection.name} ineğini kazandınız.`, "success");
+}
+
+function handleCowMilk(event) {
+  const button = event.target.closest("[data-cow-milk]");
+  if (!button) return;
+  const cowId = button.dataset.cowMilk;
+  const cow = (state.gameplay.cows || []).find((entry) => entry.id === cowId);
+  if (!cow) return;
+  if (!isCowMilkable(cow)) {
+    return showDialog("İnek şu an otlanıyor.", "error");
+  }
+  const range = getCowRange(cow);
+  const produced = Math.floor(range.min + Math.random() * (range.max - range.min));
+  state.gameplay.inventory.sut =
+    (state.gameplay.inventory.sut || 0) + Math.max(0, produced);
+  cow.grazesUntil = Date.now() + 3 * 60 * 60 * 1000;
+  renderInventory();
+  renderCows();
+  saveState();
+  showDialog(`${produced.toLocaleString("tr-TR")} Litre süt toplandı.`, "success");
+}
+
+function handleBulkMilk(event) {
+  event.preventDefault();
+  if (!dom.bulkMilkButton) return;
+  const milkable = (state.gameplay.cows || []).filter((cow) => isCowMilkable(cow));
+  if (!milkable.length) {
+    generateCowQuestion();
+    renderCows();
+    return showDialog("Tüm inekler otlanıyor.", "error");
+  }
+  const answer = Number(dom.cowChallengeInput?.value || 0);
+  if (!cowChallenge || answer !== cowChallenge.answer) {
+    generateCowQuestion();
+    return showDialog("Güvenlik sorusu hatalı.", "error");
+  }
+  let total = 0;
+  milkable.forEach((cow) => {
+    const range = getCowRange(cow);
+    const produced = Math.floor(range.min + Math.random() * (range.max - range.min));
+    total += produced;
+    cow.grazesUntil = Date.now() + 3 * 60 * 60 * 1000;
+  });
+  const finalTotal = Math.floor(total * 0.9);
+  state.gameplay.inventory.sut =
+    (state.gameplay.inventory.sut || 0) + Math.max(0, finalTotal);
+  generateCowQuestion();
+  renderInventory();
+  renderCows();
+  saveState();
+  showDialog(
+    `${finalTotal.toLocaleString("tr-TR")} Litre süt toplandı (komisyon kesildi).`,
+    "success"
+  );
+}
+
 function showFarmView(target) {
   dom.farmViews.forEach((view) => {
     view.classList.toggle("active", view.dataset.farmView === target);
@@ -489,12 +916,21 @@ function handleFarmNav(event) {
   if (view === "field") {
     renderFieldState();
   }
+  if (view === "cows") {
+    renderCows();
+  }
+  if (view === "cow-shop") {
+    renderCowShop();
+  }
 }
 
 function handleFarmBack() {
   farmViewStack.pop();
   const previous = farmViewStack[farmViewStack.length - 1] || "home";
   showFarmView(previous);
+  if (previous === "field") renderFieldState();
+  if (previous === "cows") renderCows();
+  if (previous === "cow-shop") renderCowShop();
 }
 
 function openPlantModal() {
@@ -502,7 +938,8 @@ function openPlantModal() {
   const farm = state.gameplay.farm;
   dom.plantModal.classList.remove("hidden");
   if (dom.plantInput) {
-    dom.plantInput.placeholder = `Max: ${farm.size} M2`;
+    const maxArea = Math.max(0, farm.size - getCowAreaUsage());
+    dom.plantInput.placeholder = `Max: ${maxArea} M2`;
     dom.plantInput.value = "";
   }
   updatePlantPreview();
@@ -518,6 +955,8 @@ function updatePlantPreview() {
   if (!dom.plantCost || !dom.plantInput) return;
   const farm = state.gameplay.farm;
   const area = Number(dom.plantInput.value) || 0;
+  const maxArea = Math.max(0, farm.size - getCowAreaUsage());
+  dom.plantInput.placeholder = `Max: ${maxArea} M2`;
   const cost = area * 100;
   dom.plantCost.textContent = `Ekilecek M2 İçin Gerekli TCOİN: ${cost.toLocaleString(
     "tr-TR"
@@ -538,10 +977,11 @@ function updatePlantPreview() {
 function handlePlantConfirm() {
   const farm = state.gameplay.farm;
   const amount = Number(dom.plantInput.value);
+  const maxArea = Math.max(0, farm.size - getCowAreaUsage());
   if (!amount || amount <= 0) {
     return showDialog("Geçerli bir M2 giriniz.", "error");
   }
-  if (amount > farm.size) {
+  if (amount > maxArea) {
     return showDialog("Ekilebilir alanı aşıyorsun.", "error");
   }
   if (farm.plantedArea > 0) {
@@ -1420,6 +1860,29 @@ function attachEvents() {
     btn.addEventListener("click", closeExpandModal)
   );
   if (dom.expandConfirm) dom.expandConfirm.addEventListener("click", handleExpandConfirm);
+  if (dom.bulkMilkButton) dom.bulkMilkButton.addEventListener("click", handleBulkMilk);
+  if (dom.cowList) dom.cowList.addEventListener("click", handleCowMilk);
+  if (dom.cowBuyLink)
+    dom.cowBuyLink.addEventListener("click", () => {
+      const view = dom.cowBuyLink.dataset.farmNav;
+      if (view) {
+        farmViewStack.push(view);
+        showFarmView(view);
+        renderCowShop();
+      }
+    });
+  if (dom.cowShopButton) dom.cowShopButton.addEventListener("click", openCowPurchaseModal);
+  if (dom.cowModalTrigger) dom.cowModalTrigger.addEventListener("click", openCowPurchaseModal);
+  dom.cowModalActions.forEach((btn) =>
+    btn.addEventListener("click", handleCowPurchase)
+  );
+  dom.cowModalClose.forEach((btn) =>
+    btn.addEventListener("click", closeCowPurchaseModal)
+  );
+  if (dom.cowPurchaseModal)
+    dom.cowPurchaseModal.addEventListener("click", (event) => {
+      if (event.target === dom.cowPurchaseModal) closeCowPurchaseModal();
+    });
   if (dom.farmInfoButton)
     dom.farmInfoButton.addEventListener("click", () =>
       showDialog("Çiftlik bilgisi yakında eklenecek.", "info")
@@ -1493,6 +1956,9 @@ function init() {
   setInterval(() => {
     if (state.user) {
       renderFactories();
+      renderFieldState();
+      renderCows();
+      renderCowShop();
     }
   }, 1000);
   window.addEventListener("storage", (event) => {
