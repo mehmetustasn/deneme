@@ -127,6 +127,10 @@
             <p><strong>TC Kimlik</strong></p>
             <h3 id="profile-identity">-</h3>
           </div>
+          <div class="identity-card">
+            <p><strong>Hesap Numarası</strong></p>
+            <h3 id="profile-account-number">-</h3>
+          </div>
           <div class="motto-card">
             <p>Motto</p>
             <blockquote id="profile-motto">Henüz motto eklenmedi.</blockquote>
@@ -183,6 +187,14 @@
           </button>
         </aside>
         <div class="bank-content">
+          <div class="account-number-card">
+            <p class="muted">Hesap Numaran</p>
+            <div class="account-number-row">
+              <strong id="account-number-display">-</strong>
+              <button type="button" id="copy-account-number" class="btn-ghost">Kopyala</button>
+            </div>
+            <small>11 haneli numaranı paylaşarak ödeme al.</small>
+          </div>
           <div id="currency-view" class="bank-view active">
             <div class="currency-banner">
               Döviz işlemleri 09:00'da açılır 21:00'da kapanır.
@@ -210,8 +222,7 @@
           <div id="transfer-view" class="bank-view">
             <h3>Havale / EFT</h3>
             <form id="transfer-form">
-              <label>Alıcı TC<input name="identity" required maxlength="11" minlength="11" /></label>
-              <label>Kullanıcı Adı<input name="username" required /></label>
+              <label>Alıcı Hesap No (11 hane)<input name="accountNumber" required maxlength="11" minlength="11" /></label>
               <label>Tutar (₺)<input name="amount" type="number" min="1" required /></label>
               <button type="submit" class="btn-positive">Gönder</button>
             </form>

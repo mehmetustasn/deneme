@@ -435,6 +435,28 @@ button:disabled {
   display: block;
 }
 
+.account-number-card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(90deg, #f9fbff, #eef4ff);
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.account-number-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.35rem 0;
+  flex-wrap: wrap;
+}
+
+.account-number-row strong {
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+}
+
 .currency-banner {
   border: 1px solid var(--border);
   border-radius: 0.9rem;

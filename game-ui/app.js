@@ -21,6 +21,7 @@ const dom = {
   profileUsername: document.getElementById("profile-username"),
   profileLevel: document.getElementById("profile-level"),
   profileIdentity: document.getElementById("profile-identity"),
+  profileAccountNumber: document.getElementById("profile-account-number"),
   profileMotto: document.getElementById("profile-motto"),
   profilePanel: document.getElementById("profile-panel"),
   profileForm: document.getElementById("profile-form"),
@@ -38,6 +39,8 @@ const dom = {
   receiptList: document.getElementById("receipt-list"),
   accountHistory: document.getElementById("account-history"),
   bankWorkButton: document.getElementById("bank-work-button"),
+  accountNumberDisplay: document.getElementById("account-number-display"),
+  copyAccountNumber: document.getElementById("copy-account-number"),
   chatMessages: document.getElementById("chat-messages"),
   chatForm: document.getElementById("chat-form"),
   chatInput: document.getElementById("chat-input"),
@@ -78,6 +81,7 @@ const defaultUserShape = {
   email: "",
   phone: "",
   motto: "",
+  accountNumber: "",
 };
 
 const GAMEPLAY_STORAGE = "ticarion-gameplay";
@@ -90,7 +94,11 @@ const FARM_BASE_UPGRADE_COST = 100;
 const FARM_COOLDOWN = 6 * 60 * 60 * 1000;
 
 function normalizeUser(user = {}) {
-  return { ...defaultUserShape, ...user };
+  const normalized = { ...defaultUserShape, ...user };
+  if (normalized.accountNumber !== undefined && normalized.accountNumber !== null) {
+    normalized.accountNumber = String(normalized.accountNumber);
+  }
+  return normalized;
 }
 
 const defaultCurrencies = [
@@ -157,7 +165,21 @@ const inventoryVisuals = {
 function loadUsers() {
   try {
     const payload = JSON.parse(localStorage.getItem("ticarion-users")) || [];
-    return payload.map((user) => normalizeUser(user));
+    const existingNumbers = new Set();
+    let mutated = false;
+    const normalized = payload.map((user) => {
+      const merged = normalizeUser(user);
+      if (!isValidAccountNumber(merged.accountNumber) || existingNumbers.has(merged.accountNumber)) {
+        merged.accountNumber = generateAccountNumber(existingNumbers);
+        mutated = true;
+      }
+      existingNumbers.add(merged.accountNumber);
+      return merged;
+    });
+    if (mutated) {
+      localStorage.setItem("ticarion-users", JSON.stringify(normalized));
+    }
+    return normalized;
   } catch (error) {
     return [];
   }
@@ -285,6 +307,18 @@ function generateIdentity() {
   return identity;
 }
 
+function isValidAccountNumber(accountNumber) {
+  return /^\d{11}$/.test(accountNumber || "");
+}
+
+function generateAccountNumber(existingSet = new Set()) {
+  let accountNumber = "";
+  do {
+    accountNumber = String(Math.floor(10000000000 + Math.random() * 90000000000));
+  } while (existingSet.has(accountNumber));
+  return accountNumber;
+}
+
 function createListingId() {
   return `listing-${Date.now().toString(36)}-${Math.random()
     .toString(36)
@@ -360,16 +394,47 @@ function renderSummary() {
   dom.cashBalance.textContent = formatCurrency(state.gameplay.balances.cash);
   state.gameplay.balances.iron =
     state.gameplay.inventory?.demir ?? state.gameplay.balances.iron ?? 0;
+  renderAccountNumber();
   renderAccountHistory();
   renderFactories();
   renderVip();
   renderFarm();
 }
 
+function renderAccountNumber() {
+  if (!state.user) return;
+  if (dom.accountNumberDisplay) {
+    dom.accountNumberDisplay.textContent = state.user.accountNumber || "-";
+  }
+  if (dom.profileAccountNumber) {
+    dom.profileAccountNumber.textContent = state.user.accountNumber || "-";
+  }
+}
+
+function copyAccountNumber() {
+  if (!state.user?.accountNumber) return;
+  const text = state.user.accountNumber;
+  const onSuccess = () => showDialog("Hesap numarası kopyalandı.", "success");
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+      showDialog("Kopyalama başarısız oldu.", "error");
+    });
+    return;
+  }
+  const temp = document.createElement("input");
+  temp.value = text;
+  document.body.appendChild(temp);
+  temp.select();
+  document.execCommand("copy");
+  document.body.removeChild(temp);
+  onSuccess();
+}
+
 function renderProfile() {
   dom.profileUsername.textContent = state.user.username;
   dom.profileLevel.textContent = `Seviye ${state.user.level ?? 1}`;
   dom.profileIdentity.textContent = state.user.identity;
+  dom.profileAccountNumber.textContent = state.user.accountNumber || "-";
   dom.profileMotto.textContent =
     state.user.motto?.trim() || "Henüz motto eklenmedi.";
   dom.profileForm.phone.value = state.user.phone || "";
@@ -1086,14 +1151,14 @@ function handleTransfer(event) {
   if (!amount || amount <= 0) {
     return showDialog("Geçerli bir tutar giriniz.", "error");
   }
-  if (!/^\d{11}$/.test(data.identity || "")) {
-    return showDialog("Alıcı TC 11 haneli olmalıdır.", "error");
+  if (!isValidAccountNumber(data.accountNumber)) {
+    return showDialog("Alıcı hesap numarası 11 haneli olmalıdır.", "error");
   }
   const recipient = state.users.find(
-    (user) => user.username === data.username && user.identity === data.identity
+    (user) => user.accountNumber === data.accountNumber
   );
   if (!recipient) {
-    return showDialog("Alıcı bilgileri eşleşmiyor.", "error");
+    return showDialog("Alıcı hesabı bulunamadı.", "error");
   }
   if (state.gameplay.balances.cash < amount) {
     return showDialog("Bakiyeniz yetersizdir!", "error");
@@ -1102,12 +1167,19 @@ function handleTransfer(event) {
     return showDialog("Kendine havale gönderemezsin.", "error");
   }
   state.gameplay.balances.cash -= amount;
-  logTransaction(`Havale - ${recipient.username}`, -amount);
+  logTransaction(
+    `Havale - ${recipient.username} (${recipient.accountNumber})`,
+    -amount
+  );
   const storage = loadGameplayStorage();
   const recipientState = ensureGameplayShape(storage[recipient.username]);
   recipientState.balances = recipientState.balances || { cash: 0, iron: 0 };
   recipientState.balances.cash += amount;
-  logTransaction(`Havale + ${state.user.username}`, amount, recipientState);
+  logTransaction(
+    `Havale + ${state.user.username} (${state.user.accountNumber})`,
+    amount,
+    recipientState
+  );
   storage[recipient.username] = recipientState;
   storage[state.user.username] = state.gameplay;
   persistGameplayStorage(storage);
@@ -1347,9 +1419,13 @@ function attachEvents() {
     if (exists) {
       return showDialog("Bu kullanıcı adı kullanımda.", "error");
     }
+    const numbers = new Set(
+      state.users.map((user) => user.accountNumber).filter((num) => isValidAccountNumber(num))
+    );
     const newUser = normalizeUser({
       ...payload,
       identity: generateIdentity(),
+      accountNumber: generateAccountNumber(numbers),
     });
     state.users.push(newUser);
     state.user = newUser;
@@ -1380,6 +1456,10 @@ function attachEvents() {
     renderProfile();
     togglePanel("profile-panel");
   });
+
+  if (dom.copyAccountNumber) {
+    dom.copyAccountNumber.addEventListener("click", copyAccountNumber);
+  }
 
   dom.profileForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1469,6 +1549,19 @@ function attachEvents() {
 function finalizeLogin() {
   if (!state.user.identity) {
     state.user.identity = generateIdentity();
+    state.users = state.users.map((user) =>
+      user.username === state.user.username ? state.user : user
+    );
+    saveUsers();
+  }
+  if (!isValidAccountNumber(state.user.accountNumber)) {
+    const taken = new Set(
+      state.users
+        .filter((user) => user.username !== state.user.username)
+        .map((user) => user.accountNumber)
+        .filter((num) => isValidAccountNumber(num))
+    );
+    state.user.accountNumber = generateAccountNumber(taken);
     state.users = state.users.map((user) =>
       user.username === state.user.username ? state.user : user
     );
