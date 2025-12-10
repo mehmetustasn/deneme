@@ -435,6 +435,35 @@ button:disabled {
   display: block;
 }
 
+.bank-account-card {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: #f7f9fc;
+  box-shadow: var(--shadow);
+}
+
+.account-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.account-number-row h3 {
+  margin: 0.2rem 0 0;
+}
+
+.account-hint {
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  border: 1px dashed var(--accent);
+  color: #1a4f7a;
+  background: rgba(26, 125, 183, 0.08);
+  font-weight: 600;
+}
+
 .currency-banner {
   border: 1px solid var(--border);
   border-radius: 0.9rem;
