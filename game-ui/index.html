@@ -62,6 +62,13 @@
             </div>
           </div>
         </div>
+        <div class="account-pill">
+          <div>
+            <p>Hesap Numaram</p>
+            <strong id="home-account-number">-</strong>
+          </div>
+          <button id="copy-home-account" class="btn-ghost btn-pill">Kopyala</button>
+        </div>
       </header>
 
       <main>
@@ -127,6 +134,10 @@
             <p><strong>TC Kimlik</strong></p>
             <h3 id="profile-identity">-</h3>
           </div>
+          <div class="identity-card">
+            <p><strong>Hesap Numarası</strong></p>
+            <h3 id="profile-account-number">-</h3>
+          </div>
           <div class="motto-card">
             <p>Motto</p>
             <blockquote id="profile-motto">Henüz motto eklenmedi.</blockquote>
@@ -183,6 +194,14 @@
           </button>
         </aside>
         <div class="bank-content">
+          <div class="account-box">
+            <div>
+              <p>Hesap Numaran</p>
+              <strong id="bank-account-number">-</strong>
+              <small>Bu numara ile para al.</small>
+            </div>
+            <button id="copy-bank-account" class="btn-ghost">Kopyala</button>
+          </div>
           <div id="currency-view" class="bank-view active">
             <div class="currency-banner">
               Döviz işlemleri 09:00'da açılır 21:00'da kapanır.
@@ -210,9 +229,9 @@
           <div id="transfer-view" class="bank-view">
             <h3>Havale / EFT</h3>
             <form id="transfer-form">
-              <label>Alıcı TC<input name="identity" required maxlength="11" minlength="11" /></label>
-              <label>Kullanıcı Adı<input name="username" required /></label>
+              <label>Alıcı Hesap No<input name="accountNumber" inputmode="numeric" pattern="\d{11}" required maxlength="11" minlength="11" /></label>
               <label>Tutar (₺)<input name="amount" type="number" min="1" required /></label>
+              <p class="muted">11 haneli hesap numarasını girerek para gönder.</p>
               <button type="submit" class="btn-positive">Gönder</button>
             </form>
           </div>
