@@ -127,6 +127,10 @@
             <p><strong>TC Kimlik</strong></p>
             <h3 id="profile-identity">-</h3>
           </div>
+          <div class="identity-card">
+            <p><strong>Hesap No</strong></p>
+            <h3 id="profile-account-number">-</h3>
+          </div>
           <div class="motto-card">
             <p>Motto</p>
             <blockquote id="profile-motto">Henüz motto eklenmedi.</blockquote>
@@ -152,6 +156,16 @@
         </div>
       </div>
       <div class="panel-body bank-grid">
+        <div class="bank-account-card">
+          <p class="muted">Hesap numaranla para alabilir veya gönderebilirsin.</p>
+          <div class="account-number-row">
+            <div>
+              <small>Hesap Numaran</small>
+              <h3 id="account-number">-</h3>
+            </div>
+            <div class="account-hint" id="transfer-account-hint">Hesap No: -</div>
+          </div>
+        </div>
         <aside class="bank-menu">
           <button class="bank-tab active" data-target="currency-view">
             <span class="bank-icon">💱</span>
@@ -210,9 +224,9 @@
           <div id="transfer-view" class="bank-view">
             <h3>Havale / EFT</h3>
             <form id="transfer-form">
-              <label>Alıcı TC<input name="identity" required maxlength="11" minlength="11" /></label>
-              <label>Kullanıcı Adı<input name="username" required /></label>
+              <label>Alıcı Hesap No<input name="accountNumber" required maxlength="11" minlength="11" /></label>
               <label>Tutar (₺)<input name="amount" type="number" min="1" required /></label>
+              <p class="muted">Hesap numarası 11 hanelidir ve her oyuncu için benzersizdir.</p>
               <button type="submit" class="btn-positive">Gönder</button>
             </form>
           </div>

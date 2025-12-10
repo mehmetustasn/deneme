@@ -18,9 +18,11 @@ const dom = {
   playerLevel: document.getElementById("player-level"),
   cashBalance: document.getElementById("cash-balance"),
   clock: document.getElementById("istanbul-clock"),
+  accountNumber: document.getElementById("account-number"),
   profileUsername: document.getElementById("profile-username"),
   profileLevel: document.getElementById("profile-level"),
   profileIdentity: document.getElementById("profile-identity"),
+  profileAccountNumber: document.getElementById("profile-account-number"),
   profileMotto: document.getElementById("profile-motto"),
   profilePanel: document.getElementById("profile-panel"),
   profileForm: document.getElementById("profile-form"),
@@ -46,6 +48,7 @@ const dom = {
   peekLevel: document.getElementById("peek-level"),
   peekIdentity: document.getElementById("peek-identity"),
   peekMotto: document.getElementById("peek-motto"),
+  transferAccountHint: document.getElementById("transfer-account-hint"),
   vipToggle: document.getElementById("vip-toggle"),
   farmViews: document.querySelectorAll(".farm-view"),
   farmNavButtons: document.querySelectorAll("[data-farm-nav]"),
@@ -78,6 +81,7 @@ const defaultUserShape = {
   email: "",
   phone: "",
   motto: "",
+  accountNumber: "",
 };
 
 const GAMEPLAY_STORAGE = "ticarion-gameplay";
@@ -157,10 +161,39 @@ const inventoryVisuals = {
 function loadUsers() {
   try {
     const payload = JSON.parse(localStorage.getItem("ticarion-users")) || [];
-    return payload.map((user) => normalizeUser(user));
+    return ensureAccountNumbers(payload).map((user) => normalizeUser(user));
   } catch (error) {
     return [];
   }
+}
+
+function ensureAccountNumbers(users = []) {
+  const existing = new Set(
+    users
+      .map((user) => user.accountNumber)
+      .filter((accountNumber) => /^\d{11}$/.test(accountNumber || ""))
+  );
+  let mutated = false;
+
+  const next = users.map((user) => {
+    const normalized = normalizeUser(user);
+    if (!/^\d{11}$/.test(normalized.accountNumber || "")) {
+      let accountNumber;
+      do {
+        accountNumber = generateAccountNumber(existing);
+      } while (existing.has(accountNumber));
+      normalized.accountNumber = accountNumber;
+      mutated = true;
+    }
+    existing.add(normalized.accountNumber);
+    return normalized;
+  });
+
+  if (mutated) {
+    localStorage.setItem("ticarion-users", JSON.stringify(next));
+  }
+
+  return next;
 }
 
 function saveUsers() {
@@ -285,6 +318,16 @@ function generateIdentity() {
   return identity;
 }
 
+function generateAccountNumber(existing = null) {
+  const existingNumbers =
+    existing || new Set(state.users.map((user) => user.accountNumber).filter(Boolean));
+  let accountNumber = "";
+  do {
+    accountNumber = String(Math.floor(10000000000 + Math.random() * 90000000000));
+  } while (existingNumbers.has(accountNumber));
+  return accountNumber;
+}
+
 function createListingId() {
   return `listing-${Date.now().toString(36)}-${Math.random()
     .toString(36)
@@ -360,6 +403,7 @@ function renderSummary() {
   dom.cashBalance.textContent = formatCurrency(state.gameplay.balances.cash);
   state.gameplay.balances.iron =
     state.gameplay.inventory?.demir ?? state.gameplay.balances.iron ?? 0;
+  renderAccountNumbers();
   renderAccountHistory();
   renderFactories();
   renderVip();
@@ -370,11 +414,23 @@ function renderProfile() {
   dom.profileUsername.textContent = state.user.username;
   dom.profileLevel.textContent = `Seviye ${state.user.level ?? 1}`;
   dom.profileIdentity.textContent = state.user.identity;
+  dom.profileAccountNumber.textContent = state.user.accountNumber || "-";
   dom.profileMotto.textContent =
     state.user.motto?.trim() || "Henüz motto eklenmedi.";
   dom.profileForm.phone.value = state.user.phone || "";
   dom.profileForm.email.value = state.user.email || "";
   dom.profileForm.motto.value = state.user.motto || "";
+}
+
+function renderAccountNumbers() {
+  if (dom.accountNumber) {
+    dom.accountNumber.textContent = state.user?.accountNumber || "-";
+  }
+  if (dom.transferAccountHint) {
+    dom.transferAccountHint.textContent = `Hesap No: ${
+      state.user?.accountNumber || "-"
+    }`;
+  }
 }
 
 function renderVip() {
@@ -1086,12 +1142,11 @@ function handleTransfer(event) {
   if (!amount || amount <= 0) {
     return showDialog("Geçerli bir tutar giriniz.", "error");
   }
-  if (!/^\d{11}$/.test(data.identity || "")) {
-    return showDialog("Alıcı TC 11 haneli olmalıdır.", "error");
+  const accountNumber = (data.accountNumber || "").trim();
+  if (!/^\d{11}$/.test(accountNumber)) {
+    return showDialog("Alıcı hesap numarası 11 haneli olmalıdır.", "error");
   }
-  const recipient = state.users.find(
-    (user) => user.username === data.username && user.identity === data.identity
-  );
+  const recipient = state.users.find((user) => user.accountNumber === accountNumber);
   if (!recipient) {
     return showDialog("Alıcı bilgileri eşleşmiyor.", "error");
   }
@@ -1102,12 +1157,16 @@ function handleTransfer(event) {
     return showDialog("Kendine havale gönderemezsin.", "error");
   }
   state.gameplay.balances.cash -= amount;
-  logTransaction(`Havale - ${recipient.username}`, -amount);
+  logTransaction(`Havale - ${recipient.username} (${recipient.accountNumber})`, -amount);
   const storage = loadGameplayStorage();
   const recipientState = ensureGameplayShape(storage[recipient.username]);
   recipientState.balances = recipientState.balances || { cash: 0, iron: 0 };
   recipientState.balances.cash += amount;
-  logTransaction(`Havale + ${state.user.username}`, amount, recipientState);
+  logTransaction(
+    `Havale + ${state.user.username} (${state.user.accountNumber})`,
+    amount,
+    recipientState
+  );
   storage[recipient.username] = recipientState;
   storage[state.user.username] = state.gameplay;
   persistGameplayStorage(storage);
@@ -1350,6 +1409,7 @@ function attachEvents() {
     const newUser = normalizeUser({
       ...payload,
       identity: generateIdentity(),
+      accountNumber: generateAccountNumber(),
     });
     state.users.push(newUser);
     state.user = newUser;
@@ -1469,6 +1529,13 @@ function attachEvents() {
 function finalizeLogin() {
   if (!state.user.identity) {
     state.user.identity = generateIdentity();
+    state.users = state.users.map((user) =>
+      user.username === state.user.username ? state.user : user
+    );
+    saveUsers();
+  }
+  if (!/^\d{11}$/.test(state.user.accountNumber || "")) {
+    state.user.accountNumber = generateAccountNumber();
     state.users = state.users.map((user) =>
       user.username === state.user.username ? state.user : user
     );
