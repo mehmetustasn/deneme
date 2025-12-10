@@ -24,6 +24,7 @@ const dom = {
   profileMotto: document.getElementById("profile-motto"),
   profilePanel: document.getElementById("profile-panel"),
   profileForm: document.getElementById("profile-form"),
+  profileAccountNumber: document.getElementById("profile-account-number"),
   inventoryList: document.getElementById("inventory-list"),
   marketList: document.getElementById("market-list"),
   marketSearch: document.getElementById("market-search"),
@@ -38,6 +39,8 @@ const dom = {
   receiptList: document.getElementById("receipt-list"),
   accountHistory: document.getElementById("account-history"),
   bankWorkButton: document.getElementById("bank-work-button"),
+  bankAccountNumber: document.getElementById("bank-account-number"),
+  copyBankAccount: document.getElementById("copy-bank-account"),
   chatMessages: document.getElementById("chat-messages"),
   chatForm: document.getElementById("chat-form"),
   chatInput: document.getElementById("chat-input"),
@@ -69,6 +72,8 @@ const dom = {
   farmInfoButton: document.getElementById("farm-info-button"),
   plantCloseButtons: document.querySelectorAll("[data-plant-close]"),
   expandCloseButtons: document.querySelectorAll("[data-expand-close]"),
+  homeAccountNumber: document.getElementById("home-account-number"),
+  copyHomeAccount: document.getElementById("copy-home-account"),
 };
 
 dom.factoryButtons = document.querySelectorAll("[data-factory]");
@@ -78,6 +83,7 @@ const defaultUserShape = {
   email: "",
   phone: "",
   motto: "",
+  accountNumber: "",
 };
 
 const GAMEPLAY_STORAGE = "ticarion-gameplay";
@@ -154,10 +160,35 @@ const inventoryVisuals = {
   saman: { icon: "🟫", label: "Saman", accent: "hay" },
 };
 
+function generateAccountNumber(used = new Set()) {
+  let candidate = "";
+  do {
+    candidate = String(Math.floor(10000000000 + Math.random() * 90000000000));
+  } while (used.has(candidate));
+  used.add(candidate);
+  return candidate;
+}
+
 function loadUsers() {
   try {
     const payload = JSON.parse(localStorage.getItem("ticarion-users")) || [];
-    return payload.map((user) => normalizeUser(user));
+    const usedAccounts = new Set();
+    let mutated = false;
+    const normalized = payload.map((user) => {
+      const next = normalizeUser(user);
+      const validAccount = /^\d{11}$/.test(next.accountNumber || "");
+      if (!validAccount || usedAccounts.has(next.accountNumber)) {
+        next.accountNumber = generateAccountNumber(usedAccounts);
+        mutated = true;
+      } else {
+        usedAccounts.add(next.accountNumber);
+      }
+      return next;
+    });
+    if (mutated) {
+      localStorage.setItem("ticarion-users", JSON.stringify(normalized));
+    }
+    return normalized;
   } catch (error) {
     return [];
   }
@@ -285,6 +316,20 @@ function generateIdentity() {
   return identity;
 }
 
+function ensureAccountNumberForUser() {
+  if (!state.user) return;
+  const used = new Set(state.users.map((user) => user.accountNumber).filter(Boolean));
+  used.delete(state.user.accountNumber);
+  const valid = /^\d{11}$/.test(state.user.accountNumber || "");
+  if (!valid || used.has(state.user.accountNumber)) {
+    state.user.accountNumber = generateAccountNumber(used);
+    state.users = state.users.map((user) =>
+      user.username === state.user.username ? state.user : user
+    );
+    saveUsers();
+  }
+}
+
 function createListingId() {
   return `listing-${Date.now().toString(36)}-${Math.random()
     .toString(36)
@@ -331,6 +376,21 @@ function hideDialog() {
   dialog.card.dataset.variant = "info";
 }
 
+function copyToClipboard(text, message = "Kopyalandı") {
+  if (!text) return;
+  if (navigator?.clipboard?.writeText) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => showDialog(message, "success"))
+      .catch(() => showDialog("Kopyalama başarısız.", "error"));
+    return;
+  }
+  const fallback = window.prompt("Hesap numaran:", text);
+  if (fallback !== null) {
+    showDialog(message, "success");
+  }
+}
+
 function togglePanel(panelId, open = true) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
@@ -364,17 +424,28 @@ function renderSummary() {
   renderFactories();
   renderVip();
   renderFarm();
+  renderAccountNumbers();
 }
 
 function renderProfile() {
   dom.profileUsername.textContent = state.user.username;
   dom.profileLevel.textContent = `Seviye ${state.user.level ?? 1}`;
   dom.profileIdentity.textContent = state.user.identity;
+  if (dom.profileAccountNumber) {
+    dom.profileAccountNumber.textContent = state.user.accountNumber;
+  }
   dom.profileMotto.textContent =
     state.user.motto?.trim() || "Henüz motto eklenmedi.";
   dom.profileForm.phone.value = state.user.phone || "";
   dom.profileForm.email.value = state.user.email || "";
   dom.profileForm.motto.value = state.user.motto || "";
+}
+
+function renderAccountNumbers() {
+  const accountNo = state.user?.accountNumber || "-";
+  if (dom.homeAccountNumber) dom.homeAccountNumber.textContent = accountNo;
+  if (dom.bankAccountNumber) dom.bankAccountNumber.textContent = accountNo;
+  if (dom.profileAccountNumber) dom.profileAccountNumber.textContent = accountNo;
 }
 
 function renderVip() {
@@ -1086,14 +1157,15 @@ function handleTransfer(event) {
   if (!amount || amount <= 0) {
     return showDialog("Geçerli bir tutar giriniz.", "error");
   }
-  if (!/^\d{11}$/.test(data.identity || "")) {
-    return showDialog("Alıcı TC 11 haneli olmalıdır.", "error");
+  const accountNumber = (data.accountNumber || "").trim();
+  if (!/^\d{11}$/.test(accountNumber)) {
+    return showDialog("Hesap numarası 11 haneli olmalıdır.", "error");
   }
   const recipient = state.users.find(
-    (user) => user.username === data.username && user.identity === data.identity
+    (user) => user.accountNumber === accountNumber
   );
   if (!recipient) {
-    return showDialog("Alıcı bilgileri eşleşmiyor.", "error");
+    return showDialog("Bu hesap numarası bulunamadı.", "error");
   }
   if (state.gameplay.balances.cash < amount) {
     return showDialog("Bakiyeniz yetersizdir!", "error");
@@ -1102,12 +1174,19 @@ function handleTransfer(event) {
     return showDialog("Kendine havale gönderemezsin.", "error");
   }
   state.gameplay.balances.cash -= amount;
-  logTransaction(`Havale - ${recipient.username}`, -amount);
+  logTransaction(
+    `Havale - ${recipient.username} (${recipient.accountNumber})`,
+    -amount
+  );
   const storage = loadGameplayStorage();
   const recipientState = ensureGameplayShape(storage[recipient.username]);
   recipientState.balances = recipientState.balances || { cash: 0, iron: 0 };
   recipientState.balances.cash += amount;
-  logTransaction(`Havale + ${state.user.username}`, amount, recipientState);
+  logTransaction(
+    `Havale + ${state.user.username} (${state.user.accountNumber})`,
+    amount,
+    recipientState
+  );
   storage[recipient.username] = recipientState;
   storage[state.user.username] = state.gameplay;
   persistGameplayStorage(storage);
@@ -1347,9 +1426,13 @@ function attachEvents() {
     if (exists) {
       return showDialog("Bu kullanıcı adı kullanımda.", "error");
     }
+    const usedAccounts = new Set(
+      state.users.map((user) => user.accountNumber).filter(Boolean)
+    );
     const newUser = normalizeUser({
       ...payload,
       identity: generateIdentity(),
+      accountNumber: generateAccountNumber(usedAccounts),
     });
     state.users.push(newUser);
     state.user = newUser;
@@ -1455,6 +1538,16 @@ function attachEvents() {
   if (dom.bankWorkButton) {
     dom.bankWorkButton.addEventListener("click", handleBankWork);
   }
+  if (dom.copyHomeAccount) {
+    dom.copyHomeAccount.addEventListener("click", () =>
+      copyToClipboard(state.user?.accountNumber, "Hesap numaran kopyalandı.")
+    );
+  }
+  if (dom.copyBankAccount) {
+    dom.copyBankAccount.addEventListener("click", () =>
+      copyToClipboard(state.user?.accountNumber, "Hesap numaran kopyalandı.")
+    );
+  }
 
   document.querySelectorAll(".bank-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -1474,6 +1567,7 @@ function finalizeLogin() {
     );
     saveUsers();
   }
+  ensureAccountNumberForUser();
   state.gameplay = loadState(state.user.username);
   state.market = loadMarketListings();
   normalizeMarketListings();
