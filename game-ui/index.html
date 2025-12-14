@@ -64,10 +64,10 @@
         </div>
         <div class="account-pill">
           <div>
-            <p>Hesap Numaram</p>
-            <strong id="home-account-number">-</strong>
+            <p>Oyuncu ID'm</p>
+            <strong id="home-player-id">-</strong>
           </div>
-          <button id="copy-home-account" class="btn-ghost btn-pill">Kopyala</button>
+          <button id="copy-home-player-id" class="btn-ghost btn-pill">Kopyala</button>
         </div>
       </header>
 
@@ -135,8 +135,8 @@
             <h3 id="profile-identity">-</h3>
           </div>
           <div class="identity-card">
-            <p><strong>Hesap Numarası</strong></p>
-            <h3 id="profile-account-number">-</h3>
+            <p><strong>Oyuncu ID</strong></p>
+            <h3 id="profile-player-id">-</h3>
           </div>
           <div class="motto-card">
             <p>Motto</p>
@@ -163,98 +163,64 @@
         </div>
       </div>
       <div class="panel-body bank-grid">
-        <aside class="bank-menu">
-          <button class="bank-tab active" data-target="currency-view">
-            <span class="bank-icon">💱</span>
-            Döviz
-          </button>
-          <button class="bank-tab" data-target="transfer-view">
-            <span class="bank-icon">💸</span>
-            Havale / EFT
-          </button>
-          <button class="bank-tab" data-target="earn-view">
-            <span class="bank-icon">💼</span>
-            Para Kazan
-          </button>
-          <button class="bank-tab" data-target="history-view">
-            <span class="bank-icon">📜</span>
-            Hesap Hareketleri
-          </button>
-          <button class="bank-tab" data-target="credit-view">
-            <span class="bank-icon">🏦</span>
-            Kredi Çek
-          </button>
-          <button class="bank-tab" data-target="credit-pay-view">
-            <span class="bank-icon">💳</span>
-            Kredi Öde
-          </button>
-          <button class="bank-tab" data-target="deposit-view">
-            <span class="bank-icon">⏳</span>
-            Vadeli Hesap
-          </button>
-        </aside>
-        <div class="bank-content">
-          <div class="account-box">
+        <div class="account-box">
+          <div>
+            <p>Oyuncu ID'n</p>
+            <strong id="bank-player-id">-</strong>
+            <small>Bu ID ile para al.</small>
+          </div>
+          <button id="copy-bank-player-id" class="btn-ghost">Kopyala</button>
+        </div>
+        <div class="bank-actions">
+          <article class="bank-action-card active" data-bank-target="transfer-view">
+            <span>💸</span>
             <div>
-              <p>Hesap Numaran</p>
-              <strong id="bank-account-number">-</strong>
-              <small>Bu numara ile para al.</small>
+              <h3>Havale / EFT</h3>
+              <p>Oyuncu ID girerek para gönder.</p>
             </div>
-            <button id="copy-bank-account" class="btn-ghost">Kopyala</button>
-          </div>
-          <div id="currency-view" class="bank-view active">
-            <div class="currency-banner">
-              Döviz işlemleri 09:00'da açılır 21:00'da kapanır.
+          </article>
+          <article class="bank-action-card" data-bank-target="history-view">
+            <span>📜</span>
+            <div>
+              <h3>Hesap Hareketleri</h3>
+              <p>Giden ve gelen ödemeleri izle.</p>
             </div>
-            <div class="currency-list" id="currency-list"></div>
-            <form id="currency-form" class="trade-form">
-              <label>Adet Giriniz<input name="amount" type="number" min="1" required /></label>
-              <label>İşlem Seçiniz
-                <select name="action" required>
-                  <option value="">Seçiniz</option>
-                  <option value="buy">Alış Yap</option>
-                  <option value="sell">Satış Yap</option>
-                </select>
-              </label>
-              <div class="trade-summary">
-                <p>Seçili Döviz: <strong id="selected-currency">-</strong></p>
-                <p>Birim Fiyat: <strong id="selected-price">₺0</strong></p>
-              </div>
-              <div class="trade-actions">
-                <button type="submit" class="btn-positive">İşlem Yap</button>
-                <button type="button" id="receipt-button" class="btn-ghost">Dekont</button>
-              </div>
-            </form>
-          </div>
-          <div id="transfer-view" class="bank-view">
-            <h3>Havale / EFT</h3>
-            <form id="transfer-form">
-              <label>Alıcı Hesap No<input name="accountNumber" inputmode="numeric" pattern="\d{11}" required maxlength="11" minlength="11" /></label>
-              <label>Tutar (₺)<input name="amount" type="number" min="1" required /></label>
-              <p class="muted">11 haneli hesap numarasını girerek para gönder.</p>
-              <button type="submit" class="btn-positive">Gönder</button>
-            </form>
-          </div>
-          <div id="earn-view" class="bank-view">
-            <h3>Para Kazan</h3>
-            <p>Banka gişesinde vardiya alarak kasana 100.000 TL ekle.</p>
-            <button id="bank-work-button" class="btn-positive">Bankada Çalış</button>
+          </article>
+          <article class="bank-action-card" data-close>
+            <span>🏠</span>
+            <div>
+              <h3>Panele Dön</h3>
+              <p>Ana ekrana geri dön.</p>
+            </div>
+          </article>
+        </div>
+        <div class="bank-content">
+          <div id="transfer-view" class="bank-view active">
+            <div class="bank-card">
+              <h3>Havale / EFT</h3>
+              <p class="muted">11 haneli oyuncu ID'sini girerek güvenle para gönder.</p>
+              <form id="transfer-form" class="stacked-form">
+                <label>Alıcı Oyuncu ID
+                  <input name="playerId" inputmode="numeric" pattern="\d{11}" required maxlength="11" minlength="11" />
+                </label>
+                <label>Tutar (₺)
+                  <input name="amount" type="number" min="1" required />
+                </label>
+                <button type="submit" class="btn-positive huge">Gönder</button>
+              </form>
+            </div>
           </div>
           <div id="history-view" class="bank-view">
-            <h3>Hesap Hareketleri</h3>
-            <ul id="account-history" class="history-list"></ul>
-          </div>
-          <div id="credit-view" class="bank-view">
-            <h3>Kredi Çek</h3>
-            <p>Bu ekran ilerleyen sürümlerde aktif olacak.</p>
-          </div>
-          <div id="credit-pay-view" class="bank-view">
-            <h3>Kredi Öde</h3>
-            <p>Bu ekran ilerleyen sürümlerde aktif olacak.</p>
-          </div>
-          <div id="deposit-view" class="bank-view">
-            <h3>Vadeli Hesap</h3>
-            <p>Yüksek getirili mevduatlar yakında.</p>
+            <div class="bank-card">
+              <div class="history-header">
+                <div>
+                  <p class="muted">Gönderilen ve alınan tüm işlemler</p>
+                  <h3>Hesap Hareketleri</h3>
+                </div>
+                <span class="badge subtle">Gerçek zamanlı</span>
+              </div>
+              <ul id="account-history" class="history-list"></ul>
+            </div>
           </div>
         </div>
       </div>
