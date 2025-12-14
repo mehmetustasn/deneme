@@ -24,7 +24,7 @@ const dom = {
   profileMotto: document.getElementById("profile-motto"),
   profilePanel: document.getElementById("profile-panel"),
   profileForm: document.getElementById("profile-form"),
-  profileAccountNumber: document.getElementById("profile-account-number"),
+  profileAccountNumber: document.getElementById("profile-player-id"),
   inventoryList: document.getElementById("inventory-list"),
   marketList: document.getElementById("market-list"),
   marketSearch: document.getElementById("market-search"),
@@ -39,8 +39,8 @@ const dom = {
   receiptList: document.getElementById("receipt-list"),
   accountHistory: document.getElementById("account-history"),
   bankWorkButton: document.getElementById("bank-work-button"),
-  bankAccountNumber: document.getElementById("bank-account-number"),
-  copyBankAccount: document.getElementById("copy-bank-account"),
+  bankAccountNumber: document.getElementById("bank-player-id"),
+  copyBankAccount: document.getElementById("copy-bank-player-id"),
   chatMessages: document.getElementById("chat-messages"),
   chatForm: document.getElementById("chat-form"),
   chatInput: document.getElementById("chat-input"),
@@ -72,8 +72,8 @@ const dom = {
   farmInfoButton: document.getElementById("farm-info-button"),
   plantCloseButtons: document.querySelectorAll("[data-plant-close]"),
   expandCloseButtons: document.querySelectorAll("[data-expand-close]"),
-  homeAccountNumber: document.getElementById("home-account-number"),
-  copyHomeAccount: document.getElementById("copy-home-account"),
+  homeAccountNumber: document.getElementById("home-player-id"),
+  copyHomeAccount: document.getElementById("copy-home-player-id"),
 };
 
 dom.factoryButtons = document.querySelectorAll("[data-factory]");
@@ -83,6 +83,7 @@ const defaultUserShape = {
   email: "",
   phone: "",
   motto: "",
+  playerId: "",
   accountNumber: "",
 };
 
@@ -160,7 +161,7 @@ const inventoryVisuals = {
   saman: { icon: "🟫", label: "Saman", accent: "hay" },
 };
 
-function generateAccountNumber(used = new Set()) {
+function generatePlayerId(used = new Set()) {
   let candidate = "";
   do {
     candidate = String(Math.floor(10000000000 + Math.random() * 90000000000));
@@ -176,13 +177,17 @@ function loadUsers() {
     let mutated = false;
     const normalized = payload.map((user) => {
       const next = normalizeUser(user);
-      const validAccount = /^\d{11}$/.test(next.accountNumber || "");
-      if (!validAccount || usedAccounts.has(next.accountNumber)) {
-        next.accountNumber = generateAccountNumber(usedAccounts);
+      if (!next.playerId && next.accountNumber) {
+        next.playerId = next.accountNumber;
+      }
+      const validAccount = /^\d{11}$/.test(next.playerId || "");
+      if (!validAccount || usedAccounts.has(next.playerId)) {
+        next.playerId = generatePlayerId(usedAccounts);
         mutated = true;
       } else {
-        usedAccounts.add(next.accountNumber);
+        usedAccounts.add(next.playerId);
       }
+      next.accountNumber = next.playerId;
       return next;
     });
     if (mutated) {
@@ -195,7 +200,11 @@ function loadUsers() {
 }
 
 function saveUsers() {
-  const normalized = state.users.map((user) => normalizeUser(user));
+  const normalized = state.users.map((user) => {
+    const next = normalizeUser(user);
+    next.accountNumber = next.playerId;
+    return next;
+  });
   localStorage.setItem("ticarion-users", JSON.stringify(normalized));
 }
 
@@ -316,13 +325,14 @@ function generateIdentity() {
   return identity;
 }
 
-function ensureAccountNumberForUser() {
+function ensurePlayerIdForUser() {
   if (!state.user) return;
-  const used = new Set(state.users.map((user) => user.accountNumber).filter(Boolean));
-  used.delete(state.user.accountNumber);
-  const valid = /^\d{11}$/.test(state.user.accountNumber || "");
-  if (!valid || used.has(state.user.accountNumber)) {
-    state.user.accountNumber = generateAccountNumber(used);
+  const used = new Set(state.users.map((user) => user.playerId).filter(Boolean));
+  used.delete(state.user.playerId);
+  const valid = /^\d{11}$/.test(state.user.playerId || "");
+  if (!valid || used.has(state.user.playerId)) {
+    state.user.playerId = generatePlayerId(used);
+    state.user.accountNumber = state.user.playerId;
     state.users = state.users.map((user) =>
       user.username === state.user.username ? state.user : user
     );
@@ -432,7 +442,7 @@ function renderProfile() {
   dom.profileLevel.textContent = `Seviye ${state.user.level ?? 1}`;
   dom.profileIdentity.textContent = state.user.identity;
   if (dom.profileAccountNumber) {
-    dom.profileAccountNumber.textContent = state.user.accountNumber;
+    dom.profileAccountNumber.textContent = state.user.playerId;
   }
   dom.profileMotto.textContent =
     state.user.motto?.trim() || "Henüz motto eklenmedi.";
@@ -442,7 +452,7 @@ function renderProfile() {
 }
 
 function renderAccountNumbers() {
-  const accountNo = state.user?.accountNumber || "-";
+  const accountNo = state.user?.playerId || "-";
   if (dom.homeAccountNumber) dom.homeAccountNumber.textContent = accountNo;
   if (dom.bankAccountNumber) dom.bankAccountNumber.textContent = accountNo;
   if (dom.profileAccountNumber) dom.profileAccountNumber.textContent = accountNo;
@@ -802,6 +812,14 @@ function renderMarket() {
 }
 
 function renderCurrencies() {
+  if (
+    !dom.currencyList ||
+    !dom.currencyForm ||
+    !dom.selectedCurrency ||
+    !dom.selectedPrice
+  ) {
+    return;
+  }
   dom.currencyList.innerHTML = defaultCurrencies
     .map((currency, index) => {
       const holdings = state.gameplay.currencies[currency.id]?.holdings || 0;
@@ -892,6 +910,7 @@ function escapeHtml(value = "") {
 }
 
 function selectCurrency(id) {
+  if (!dom.currencyForm || !dom.selectedCurrency || !dom.selectedPrice) return;
   const cards = document.querySelectorAll(".currency-card");
   cards.forEach((card) => {
     if (card.dataset.currency === id) {
@@ -1003,13 +1022,17 @@ function pushReceipt(type, currency, quantity, unitPrice, direction = "out") {
   state.gameplay.receipts = state.gameplay.receipts.slice(0, 25);
 }
 
-function logTransaction(label, amount, target = state.gameplay) {
+function logTransaction(label, amount, target = state.gameplay, meta = {}) {
   if (!target) return;
   const entry = {
     id: `txn-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
     label,
     amount,
+    direction: meta.direction || (amount >= 0 ? "in" : "out"),
     timestamp: getIstanbulDate().toLocaleString("tr-TR"),
+    counterpartyId: meta.counterpartyId,
+    counterpartyName: meta.counterpartyName,
+    note: meta.note,
   };
   target.transactions = target.transactions || [];
   target.transactions.unshift(entry);
@@ -1041,17 +1064,34 @@ function renderReceipts() {
 function renderAccountHistory() {
   if (!dom.accountHistory) return;
   const rows = (state.gameplay.transactions || [])
-    .map((entry) => `
-      <li class="history-item">
-        <div>
-          <strong>${escapeHtml(entry.label)}</strong>
-          <small>${entry.timestamp || ""}</small>
-        </div>
-        <span class="history-amount ${entry.amount >= 0 ? "positive" : "negative"}">
-          ${formatSignedCurrency(entry.amount)}
-        </span>
-      </li>
-    `)
+    .map((entry) => {
+      const direction = entry.direction || (entry.amount >= 0 ? "in" : "out");
+      const directionLabel = direction === "out" ? "Gönderildi" : "Alındı";
+      const counterpartLabel = direction === "out" ? "Alıcı" : "Gönderen";
+      const counterpartBlock =
+        entry.counterpartyId || entry.counterpartyName
+          ? `<p class="history-note">${counterpartLabel}: <strong>${escapeHtml(
+              entry.counterpartyName || "Bilinmiyor"
+            )}</strong> · <span class="mono">${entry.counterpartyId || "-"}</span></p>`
+          : "";
+
+      return `
+        <li class="history-item">
+          <div>
+            <div class="history-head">
+              <span class="history-badge ${direction}">${directionLabel}</span>
+              <strong>${escapeHtml(entry.label)}</strong>
+            </div>
+            <small>${entry.timestamp || ""}</small>
+            ${counterpartBlock}
+            ${entry.note ? `<p class="history-note">${escapeHtml(entry.note)}</p>` : ""}
+          </div>
+          <span class="history-amount ${entry.amount >= 0 ? "positive" : "negative"}">
+            ${formatSignedCurrency(entry.amount)}
+          </span>
+        </li>
+      `;
+    })
     .join("");
 
   dom.accountHistory.innerHTML =
@@ -1157,15 +1197,15 @@ function handleTransfer(event) {
   if (!amount || amount <= 0) {
     return showDialog("Geçerli bir tutar giriniz.", "error");
   }
-  const accountNumber = (data.accountNumber || "").trim();
-  if (!/^\d{11}$/.test(accountNumber)) {
-    return showDialog("Hesap numarası 11 haneli olmalıdır.", "error");
+  const playerId = (data.playerId || "").trim();
+  if (!/^\d{11}$/.test(playerId)) {
+    return showDialog("Oyuncu ID 11 haneli olmalıdır.", "error");
   }
   const recipient = state.users.find(
-    (user) => user.accountNumber === accountNumber
+    (user) => user.playerId === playerId
   );
   if (!recipient) {
-    return showDialog("Bu hesap numarası bulunamadı.", "error");
+    return showDialog("Bu oyuncu ID'si bulunamadı.", "error");
   }
   if (state.gameplay.balances.cash < amount) {
     return showDialog("Bakiyeniz yetersizdir!", "error");
@@ -1174,19 +1214,20 @@ function handleTransfer(event) {
     return showDialog("Kendine havale gönderemezsin.", "error");
   }
   state.gameplay.balances.cash -= amount;
-  logTransaction(
-    `Havale - ${recipient.username} (${recipient.accountNumber})`,
-    -amount
-  );
+  logTransaction("Havale / EFT", -amount, state.gameplay, {
+    direction: "out",
+    counterpartyId: recipient.playerId,
+    counterpartyName: recipient.username,
+  });
   const storage = loadGameplayStorage();
   const recipientState = ensureGameplayShape(storage[recipient.username]);
   recipientState.balances = recipientState.balances || { cash: 0, iron: 0 };
   recipientState.balances.cash += amount;
-  logTransaction(
-    `Havale + ${state.user.username} (${state.user.accountNumber})`,
-    amount,
-    recipientState
-  );
+  logTransaction("Havale / EFT", amount, recipientState, {
+    direction: "in",
+    counterpartyId: state.user.playerId,
+    counterpartyName: state.user.username,
+  });
   storage[recipient.username] = recipientState;
   storage[state.user.username] = state.gameplay;
   persistGameplayStorage(storage);
@@ -1427,13 +1468,14 @@ function attachEvents() {
       return showDialog("Bu kullanıcı adı kullanımda.", "error");
     }
     const usedAccounts = new Set(
-      state.users.map((user) => user.accountNumber).filter(Boolean)
+      state.users.map((user) => user.playerId).filter(Boolean)
     );
     const newUser = normalizeUser({
       ...payload,
       identity: generateIdentity(),
-      accountNumber: generateAccountNumber(usedAccounts),
+      playerId: generatePlayerId(usedAccounts),
     });
+    newUser.accountNumber = newUser.playerId;
     state.users.push(newUser);
     state.user = newUser;
     saveUsers();
@@ -1509,13 +1551,17 @@ function attachEvents() {
     );
   if (dom.vipToggle) dom.vipToggle.addEventListener("click", toggleVip);
 
-  dom.currencyList.addEventListener("click", (event) => {
-    const card = event.target.closest(".currency-card");
-    if (!card) return;
-    selectCurrency(card.dataset.currency);
-  });
+  if (dom.currencyList) {
+    dom.currencyList.addEventListener("click", (event) => {
+      const card = event.target.closest(".currency-card");
+      if (!card) return;
+      selectCurrency(card.dataset.currency);
+    });
+  }
 
-  dom.currencyForm.addEventListener("submit", handleTrade);
+  if (dom.currencyForm) {
+    dom.currencyForm.addEventListener("submit", handleTrade);
+  }
   dom.transferForm.addEventListener("submit", handleTransfer);
   if (dom.inventoryList) {
     dom.inventoryList.addEventListener("click", handleInventoryToggle);
@@ -1531,30 +1577,34 @@ function attachEvents() {
   }
   dom.marketSearch.addEventListener("input", renderMarket);
   dom.marketFilter.addEventListener("change", renderMarket);
-  dom.receiptButton.addEventListener("click", () => {
-    renderReceipts();
-    togglePanel("receipt-panel");
-  });
+  if (dom.receiptButton) {
+    dom.receiptButton.addEventListener("click", () => {
+      renderReceipts();
+      togglePanel("receipt-panel");
+    });
+  }
   if (dom.bankWorkButton) {
     dom.bankWorkButton.addEventListener("click", handleBankWork);
   }
   if (dom.copyHomeAccount) {
     dom.copyHomeAccount.addEventListener("click", () =>
-      copyToClipboard(state.user?.accountNumber, "Hesap numaran kopyalandı.")
+      copyToClipboard(state.user?.playerId, "Oyuncu ID kopyalandı.")
     );
   }
   if (dom.copyBankAccount) {
     dom.copyBankAccount.addEventListener("click", () =>
-      copyToClipboard(state.user?.accountNumber, "Hesap numaran kopyalandı.")
+      copyToClipboard(state.user?.playerId, "Oyuncu ID kopyalandı.")
     );
   }
 
-  document.querySelectorAll(".bank-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".bank-tab").forEach((t) => t.classList.remove("active"));
-      document.querySelectorAll(".bank-view").forEach((view) => view.classList.remove("active"));
-      tab.classList.add("active");
-      document.getElementById(tab.dataset.target).classList.add("active");
+  const bankActions = document.querySelectorAll("[data-bank-target]");
+  const bankViews = document.querySelectorAll(".bank-view");
+  bankActions.forEach((action) => {
+    action.addEventListener("click", () => {
+      bankActions.forEach((btn) => btn.classList.remove("active"));
+      bankViews.forEach((view) => view.classList.remove("active"));
+      action.classList.add("active");
+      document.getElementById(action.dataset.bankTarget)?.classList.add("active");
     });
   });
 }
@@ -1567,7 +1617,7 @@ function finalizeLogin() {
     );
     saveUsers();
   }
-  ensureAccountNumberForUser();
+  ensurePlayerIdForUser();
   state.gameplay = loadState(state.user.username);
   state.market = loadMarketListings();
   normalizeMarketListings();
